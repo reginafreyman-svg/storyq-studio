@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>StoryQ Studio - Laboratorio de Futuros</title>
+    <link rel="stylesheet" href="./styles.css">
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar" aria-label="Progreso del laboratorio">
+        <div class="brand">
+          <img src="./assets/storyq-studio.png" alt="" class="brand-mark">
+          <div>
+            <p class="eyebrow">StoryQ Studio</p>
+            <h1>Laboratorio de Futuros</h1>
+          </div>
+        </div>
+
+        <figure class="method-figure">
+          <img src="./assets/storyq-studio.png" alt="StoryQ Studio, crear sentido, transformar futuros">
+          <figcaption>Historias que piensan. Futuros que elegimos.</figcaption>
+        </figure>
+
+        <div class="progress-block">
+          <div class="progress-copy">
+            <span id="stepCounter">Paso 1 de 13</span>
+            <strong id="completionText">0% completo</strong>
+          </div>
+          <div class="progress-track" aria-hidden="true">
+            <div id="progressBar" class="progress-bar"></div>
+          </div>
+        </div>
+
+        <nav id="stepNav" class="step-nav" aria-label="Pasos"></nav>
+      </aside>
+
+      <main class="workspace">
+        <section class="editor-panel" aria-labelledby="stepTitle">
+          <div class="studio-ribbon">
+            <span>Crear sentido</span>
+            <span>Transformar futuros</span>
+            <span>Diseñar artefactos</span>
+          </div>
+
+          <div class="step-heading">
+            <p id="stepKicker" class="eyebrow">Sistema</p>
+            <h2 id="stepTitle"></h2>
+            <div id="stepMeta" class="step-meta" aria-label="Orientacion del paso"></div>
+            <p id="stepPurpose" class="purpose"></p>
+            <label class="pilot-toggle">
+              <input id="pilotModeToggle" type="checkbox">
+              <span>Modo piloto: mostrar solo campos clave</span>
+            </label>
+            <p id="pilotModeNote" class="pilot-note" hidden>Recorrido reducido activo. Los campos de apoyo estan ocultos, pero no se borran.</p>
+          </div>
+
+          <section class="cognitive-card" aria-label="Etiqueta cognitiva StoryQ">
+            <div class="cognitive-card-heading">
+              <p class="eyebrow">Etiqueta cognitiva StoryQ</p>
+              <strong id="cognitiveStepName">Proceso actual</strong>
+            </div>
+            <div id="cognitiveForm" class="cognitive-grid"></div>
+          </section>
+
+          <form id="stepForm" class="field-grid"></form>
+
+          <div class="actions">
+            <button id="prevBtn" class="ghost" type="button">Anterior</button>
+            <div class="action-cluster">
+              <button id="sampleBtn" class="ghost" type="button">Cargar caso demo</button>
+              <button id="aiBtn" class="secondary" type="button">Generar contrapunto</button>
+              <button id="nextBtn" class="primary" type="button">Siguiente</button>
+            </div>
+          </div>
+        </section>
+
+        <aside class="preview-panel" aria-labelledby="previewTitle">
+          <div class="preview-header">
+            <div>
+              <p class="eyebrow">StoryQ Studio</p>
+              <h2 id="previewTitle">Ficha curatorial</h2>
+            </div>
+            <button id="printBtn" class="icon-button" type="button" title="Imprimir o guardar como PDF" aria-label="Imprimir o guardar como PDF">
+              <span aria-hidden="true">PDF</span>
+            </button>
+          </div>
+
+          <div class="artifact-visual" aria-hidden="true">
+            <img src="./assets/storyq-studio.png" alt="">
+          </div>
+
+          <article class="museum-label">
+            <p class="label-number">Objeto especulativo</p>
+            <p class="label-meta" id="labelWorld">Sociedad por definir</p>
+            <h3 id="labelObject">Artefacto sin nombre</h3>
+            <p id="labelText">La ficha aparecerá cuando escribas el texto curatorial o completes los campos centrales del laboratorio.</p>
+          </article>
+
+          <div class="summary-list">
+            <div>
+              <span>Dilema</span>
+              <strong id="summaryDilemma">Pendiente</strong>
+            </div>
+            <div>
+              <span>Persona producida</span>
+              <strong id="summaryHuman">Pendiente</strong>
+            </div>
+            <div>
+              <span>Problema social</span>
+              <strong id="summaryIssue">Pendiente</strong>
+            </div>
+          </div>
+
+          <section class="journey-panel" aria-label="Vista global del recorrido">
+            <div class="journey-header">
+              <div>
+                <p class="eyebrow">Vista global</p>
+                <h3>Recorrido del pensamiento</h3>
+              </div>
+            </div>
+            <div id="journeyMap" class="journey-map"></div>
+          </section>
+
+          <section class="core-panel" aria-label="Campos clave">
+            <div class="core-header">
+              <div>
+                <p class="eyebrow">Campos clave</p>
+                <h3>Base del reporte</h3>
+              </div>
+              <strong id="coreCompletion">0/0</strong>
+            </div>
+            <div class="core-track" aria-hidden="true">
+              <div id="coreBar"></div>
+            </div>
+            <p id="coreMessage">Completa los campos clave para fortalecer la trazabilidad.</p>
+            <ul id="coreMissingList" class="core-missing"></ul>
+          </section>
+
+          <section class="trace-panel" aria-label="Trazabilidad cognitiva">
+            <div class="trace-header">
+              <div>
+                <p class="eyebrow">Trazabilidad</p>
+                <h3>Proceso de pensamiento</h3>
+              </div>
+              <strong id="traceScore">0 decisiones</strong>
+            </div>
+            <div class="trace-metrics">
+              <div><span>Humano</span><strong id="humanPercent">100%</strong></div>
+              <div><span>IA</span><strong id="aiPercent">0%</strong></div>
+              <div><span>Iteraciones</span><strong id="iterationCount">0</strong></div>
+            </div>
+            <ol id="timelineList" class="timeline-list"></ol>
+          </section>
+
+          <div class="export-actions">
+            <button id="evidenceBtn" class="secondary full" type="button">Ver reporte StoryQ</button>
+            <button id="resetBtn" class="danger full" type="button">Limpiar laboratorio</button>
+          </div>
+
+          <section id="evidencePanel" class="evidence-panel" hidden>
+            <div class="evidence-header">
+              <p class="eyebrow">Reporte StoryQ</p>
+              <div class="report-actions">
+                <button id="copyReadableBtn" class="ghost compact" type="button">Copiar texto</button>
+                <button id="copyEvidenceBtn" class="ghost compact" type="button">Copiar datos</button>
+              </div>
+            </div>
+            <div id="readableReport" class="readable-report"></div>
+            <textarea id="evidenceText" readonly aria-label="Evidencia del laboratorio"></textarea>
+            <p id="copyStatus" class="copy-status" aria-live="polite"></p>
+          </section>
+        </aside>
+      </main>
+    </div>
+
+    <script src="./app.js"></script>
+  </body>
+</html>

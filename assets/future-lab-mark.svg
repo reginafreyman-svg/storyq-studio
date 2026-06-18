@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-label="Marca del laboratorio">
+  <rect width="120" height="120" rx="18" fill="#20201d"/>
+  <path d="M22 77c18-30 56-31 76 0" fill="none" stroke="#f7f2e8" stroke-width="7" stroke-linecap="round"/>
+  <path d="M35 43h50v34H35z" fill="#b8822f" stroke="#f7f2e8" stroke-width="5"/>
+  <circle cx="60" cy="60" r="13" fill="#3a7084" stroke="#f7f2e8" stroke-width="5"/>
+  <path d="M60 18v17M60 85v17M18 60h17M85 60h17" stroke="#f7f2e8" stroke-width="6" stroke-linecap="round"/>
+</svg>
