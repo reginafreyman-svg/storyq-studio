@@ -1,4 +1,4 @@
-const steps = [
+const methodsSteps = [
   {
     id: "context",
     kicker: "Contexto",
@@ -160,8 +160,397 @@ const steps = [
   }
 ];
 
-const state = JSON.parse(localStorage.getItem("futureArtifactLab") || "{}");
-let current = Number(localStorage.getItem("futureArtifactStep") || 0);
+const sharedContextFields = [
+  ["studentName", "Nombre del estudiante o equipo", "input", "Ej. Equipo 4 / Ana y Luis"],
+  ["groupName", "Grupo", "input", "Ej. Creative Writing — Grupo 301"],
+  ["activityName", "Actividad o proyecto", "input", "Ej. Feria de los Oráculos"],
+  ["teacherName", "Docente", "input", "Ej. Regina Freyman"],
+  ["sessionDate", "Fecha", "input", "Ej. 17 de junio de 2026"],
+  ["projectId", "Clave del proyecto", "input", "Ej. CW-301-E04. Usa la misma clave en todas las evidencias."]
+];
+
+const writingSteps = [
+  { id: "context", kicker: "Contexto", title: "Datos del proyecto", purpose: "Identifica la obra y conserva una clave estable para reunir borradores, pruebas y publicación. La carga horaria se registra como contexto, pero ambos grupos siguen la misma dinámica.", fields: [
+    ...sharedContextFields,
+    ["weeklyHours", "Horas semanales del grupo", "select", "3 horas|6 horas|Otra carga"],
+    ["teachingRole", "Participación docente", "select", "Docente titular|Docencia colaborativa"],
+    ["coTeacher", "Maestra acompañante", "input", "Nombre, si corresponde"],
+    ["teamRoles", "Integrantes y responsabilidades iniciales", "textarea", "Quién escribe, investiga, diseña, prueba o documenta. Los roles pueden cambiar."]
+  ] },
+  { id: "genre", kicker: "Oráculo · fundamento", title: "¿De qué tradición narrativa nace el oráculo?", purpose: "Elige la tradición literaria que alimentará sus textos y decide cómo se transformará en una experiencia contemporánea.", fields: [
+    ["classicGenre", "Género de partida", "select", "Cuento|Novela|Poesía|Drama|Ensayo|Epístola|Mito o leyenda|Otro"],
+    ["genreModel", "Autor, obra o tradición de referencia", "textarea", "Puede provenir del curso, del kit de paper dolls o de otra lectura pertinente."],
+    ["classicConvention", "Convención que reconoces", "textarea", "¿Cómo organiza este género la voz, el tiempo, la extensión, el conflicto o la relación con quien lee?"],
+    ["formatGenealogy", "Transformación que explorarás", "select", "Cuento → serie antológica|Novela → serie audiovisual|Epístola → correo, chat o blog|Poesía → performance, audio o red social|Drama → video, podcast o experiencia interactiva|Mito → universo transmedia|Ensayo → hipertexto o libro enriquecido|Otra genealogía"],
+    ["newFormat", "Formato contemporáneo", "select", "Libro impreso|Serie o episodio|Serie antológica|Correo o blog|Podcast|Cómic|Video breve|Red social|Hipertexto|Experiencia interactiva|Otro"],
+    ["transformationRule", "Qué permanece y qué se transforma", "textarea", "Nombra al menos un rasgo que conservarás y uno que cambiará al pasar al nuevo medio."],
+    ["hybridGenre", "Cruce o género híbrido resultante", "textarea", "Ej. cuento + archivo; poesía + juego; epístola + blog."],
+    ["mediumReason", "Por qué este medio", "textarea", "¿Qué experiencia narrativa permite que el formato anterior no permitía?"]
+  ]},
+  { id: "observation", kicker: "Oráculo · mundo", title: "¿Qué realidad documenta el oráculo?", purpose: "Reúne el material humano y sensible del que surgirán sus símbolos, preguntas y textos. Practica la documentación SlowU: detente, atiende y registra antes de explicar.", fields: [
+    ["observationSource", "Escena o realidad observada", "textarea", "Lugar, situación, persona, objeto u obra. Registra fecha, duración y condiciones de observación."],
+    ["sensoryInventory", "Inventario sensorial", "textarea", "Anota detalles concretos: espacio, cuerpos, gestos, objetos, ritmos, voces, sonidos, olores, temperaturas y silencios."],
+    ["thickDescription", "Descripción densa", "textarea", "Construye una escena situada: relaciona detalles, contexto, acciones y contradicciones sin convertir todavía el registro en ficción."],
+    ["factInference", "Registro e interpretación", "textarea", "Separa dos columnas: ¿qué observaste o escuchaste realmente?, ¿qué estás suponiendo o interpretando?"],
+    ["activeListening", "Huella de escucha activa", "textarea", "Conserva una frase, pausa, pregunta o cambio de perspectiva. No incluyas datos personales innecesarios."],
+    ["researchNotes", "Preguntas e investigación", "textarea", "¿Qué necesitas verificar? Añade conceptos, obras, autores o fuentes que amplíen la observación."],
+    ["identityPosition", "Tu identidad frente a la escena", "textarea", "¿Qué experiencias, pertenencias o límites influyen en tu manera de mirar?"],
+    ["othernessPosition", "Otredad, prejuicio y cuidado", "textarea", "¿Qué prejuicio reconoces? ¿Qué no te pertenece contar? ¿Qué autorización, anonimato o distancia requiere la escritura?"],
+    ["selectionReason", "Qué conservarás para escribir", "textarea", "Elige detalles significativos y explica por qué; señala también qué dejarás fuera por ahora."],
+    ["sourceLinks", "Evidencias del cuaderno de campo", "textarea", "Páginas, notas, fotografías, audios, archivos o enlaces. Indica fecha y versión."]
+  ]},
+  { id: "design", kicker: "Oráculo · voz", title: "¿Quién habla y cómo organiza sus revelaciones?", purpose: "Define la voz, la focalización, el conflicto y la estructura que sostendrán las respuestas del oráculo.", fields: [
+    ["narrativeVoice", "Voz narrativa", "select", "Primera persona protagonista|Primera persona testigo|Segunda persona|Tercera limitada|Tercera omnisciente|Voces múltiples|Voz no humana"],
+    ["focalization", "Quién percibe, sabe y calla", "textarea", "Diferencia quién cuenta de la conciencia que filtra la escena. ¿Qué información queda fuera de su alcance?"],
+    ["narratorDistance", "Distancia y confiabilidad", "textarea", "¿La voz está cerca o lejos de lo narrado? ¿Debemos creerle por completo? Incluye una contradicción o punto ciego."],
+    ["voiceExperiment", "Prueba breve de voces", "textarea", "Narra el mismo acontecimiento en dos voces. Puedes usar dos cartas de la Caja de cuentos. Conserva la versión que descartes."],
+    ["voiceDecision", "Voz elegida y criterio", "textarea", "¿Cuál produce el efecto buscado y por qué?"],
+    ["storyStructure", "Organización de la historia", "select", "Lineal|Circular|Fragmentaria|Marco narrativo|Camino heroico|Camino de la heroína|Estructura coral|Ramificada o hipertextual|Otra"],
+    ["structureEvidence", "Estaciones o movimientos principales", "textarea", "Enumera de 4 a 8 movimientos. Si usaste Jenga, registra las piezas obtenidas y cómo reorganizaste el recorrido."],
+    ["timeOrder", "Orden y duración", "textarea", "¿Dónde comienza el relato? ¿Qué resume, repite, anticipa u omite?"],
+    ["narrativeConflict", "Deseo, obstáculo y riesgo", "textarea", "¿Qué quiere alguien, qué o quién se lo impide y qué puede perder?"],
+    ["turningPoint", "Incidente y punto de giro", "textarea", "¿Qué rompe el equilibrio? Puedes usar Story Dice y justificar qué elemento conservaste o transformaste."],
+    ["writingConstraint", "Regla de escritura", "textarea", "Una restricción fértil: cinco escenas, narrador contradictorio, texto sin adjetivos, orden inverso u otra."]
+  ]},
+  { id: "draft", kicker: "Oráculo · corpus", title: "Primer corpus escrito por el equipo", purpose: "Escribe las primeras respuestas, fragmentos o revelaciones sin asistencia automática. Esta versión conserva el origen humano del oráculo.", fields: [
+    ["corpusUnit", "Unidad mínima del oráculo", "textarea", "Define qué contiene cada pieza: símbolo, título, fragmento, pregunta, instrucción, presagio, consejo, acción u otra combinación."],
+    ["corpusPlan", "Familias de respuestas", "textarea", "Diseña de 3 a 5 familias para evitar repeticiones. Ej. memoria, pérdida, deseo, elección y transformación."],
+    ["humanDraft", "Corpus humano inicial", "textarea", "Escribe entre 8 y 12 unidades breves para poder combinarlas y hacer una primera prueba."],
+    ["corpusVariation", "Variedad y coherencia", "textarea", "Señala qué unidades consuelan, inquietan, contradicen, abren preguntas o invitan a actuar. ¿Qué voz las mantiene unidas?"],
+    ["draftIntent", "Efecto buscado en quien consulta", "textarea", "¿Qué quieres hacer sentir, pensar, recordar o cuestionar?"],
+    ["initialChoices", "Tres decisiones de escritura", "textarea", "Nombra elecciones de voz, imagen, ritmo, extensión, ambigüedad o silencio y explica su función."],
+    ["discardedFragment", "Una pieza descartada o reescrita", "textarea", "Conserva el antes y el después; explica por qué la primera versión no servía al oráculo."],
+    ["draftEvidence", "Evidencia de la primera versión", "textarea", "Enlace, archivo, fotografía o versión con fecha."]
+  ]},
+  { id: "oracle", kicker: "Oráculo · interacción", title: "¿Cómo se consulta e interpreta?", purpose: "Convierte el corpus en una experiencia de lectura e interpretación para la Feria de los Oráculos.", fields: [
+    ["oracleName", "Nombre del oráculo", "input", "Ej. Oráculo de las Voces Perdidas"],
+    ["oraclePromise", "Promesa de la experiencia", "textarea", "Completa: «Este oráculo no predice el futuro; ayuda a…». Define su alcance y evita afirmaciones engañosas."],
+    ["oracleMechanism", "Mecanismo de consulta", "select", "Cartas o tarot|Story Dice|Paper dolls y personajes|Aromas u objetos sensoriales|Bloques o Jenga|Libro o caja de cuentos|Recorrido espacial|Hipertexto o pantalla|Sistema híbrido|Otro"],
+    ["oracleSymbolSystem", "Sistema de símbolos y correspondencias", "textarea", "¿Qué significa cada familia de cartas, dados, personajes, aromas, objetos o caminos?"],
+    ["oracleQuestion", "Entrada de quien consulta", "textarea", "¿Formula una pregunta, elige un tema, cuenta una situación o entrega una palabra? Incluye una alternativa para quien no quiera compartir algo personal."],
+    ["chanceRule", "Azar, elección y combinación", "textarea", "¿Qué elige la persona?, ¿qué se sortea?, ¿cuántas piezas aparecen y en qué orden se relacionan?"],
+    ["interpretationGrammar", "Gramática de interpretación", "textarea", "Escribe reglas que permitan combinar símbolo, texto y contexto sin dar respuestas genéricas ni dictar decisiones."],
+    ["oracleProcedure", "Guion completo de la consulta", "textarea", "Describe en 5 a 7 acciones: bienvenida, pregunta, selección, lectura, diálogo, entrega o registro y cierre."],
+    ["mediatorRole", "Papel del mediador o la mediadora", "textarea", "¿Qué puede preguntar, interpretar o explicar? ¿Qué debe evitar?"],
+    ["oracleText", "Corpus vinculado al mecanismo", "textarea", "Indica cómo se distribuyen las unidades escritas entre las piezas y qué combinaciones son posibles."],
+    ["careProtocol", "Cuidado y límites", "textarea", "Cómo se protege la privacidad, se evita diagnosticar o sentenciar y se permite detener la experiencia."],
+    ["oraclePrototype", "Prototipo mínimo para probar", "textarea", "Materiales y versión reducida que permita realizar al menos tres consultas."]
+  ]},
+  { id: "media", kicker: "Oráculo · cuerpo", title: "¿En qué soporte existe?", purpose: "Decide cómo la materialidad impresa, electrónica o híbrida modifica la consulta y el sentido del oráculo.", fields: [
+    ["publicationMedium", "Forma principal", "select", "Mazo de cartas|Libro o cuadernillo|Caja u objeto editorial|Dados y tablero|Instalación sensorial|Blog o red social|Twine o hipertexto|Podcast o audio|Video|Libro enriquecido|Instalación híbrida|Otra"],
+    ["physicalComponents", "Piezas del oráculo", "textarea", "Enumera cartas, dados, figuras, recipientes, textiles, aromas, instructivo, registro, pantalla u otros componentes."],
+    ["materialDecisions", "Materialidad impresa y relación con el cuerpo", "textarea", "Tamaño, papel, textura, encuadernación, tipografía, color, manipulación, distancia de lectura y forma de guardarlo."],
+    ["digitalDecisions", "Capa electrónica, si existe", "textarea", "Navegación, enlaces, sonido, interacción, dispositivo y funcionamiento sin conexión. Si no se usa, explica por qué."],
+    ["fairStation", "Estación para la feria", "textarea", "Espacio requerido, mesa o recorrido, iluminación, sonido, asientos, señalización, duración y número de personas por consulta."],
+    ["accessibility", "Accesibilidad y alternativas", "textarea", "Lectura clara, contraste, volumen, subtítulos, descripción, manipulación, idioma y opción no sensorial o no digital."],
+    ["takeaway", "Huella que conserva quien consulta", "textarea", "Tarjeta, fragmento, fotografía, audio, enlace, marca en una bitácora o solo una experiencia efímera. Justifica."],
+    ["platformMeaning", "Qué aporta el soporte al sentido", "textarea", "¿Qué sería imposible o diferente si el mismo corpus apareciera en otro medio?"],
+    ["productionPlan", "Plan mínimo de producción", "textarea", "Materiales disponibles, responsables, costos aproximados, tiempo de montaje y prueba técnica."],
+    ["publicationLink", "Evidencia del prototipo", "textarea", "Fotografías, video, plano, archivo, URL, QR o versión con fecha."]
+  ]},
+  { id: "ai", kicker: "Oráculo · contrapunto", title: "¿Qué aporta o amenaza la IA?", purpose: "Si se utiliza IA, documenta una intervención concreta en el oráculo: qué pediste, qué obtuviste y qué decisión humana tomaste.", fields: [
+    ["aiPurpose", "Para qué se usó IA", "select", "No se usó|Explorar opciones|Contrastar una decisión|Editar estilo|Investigar|Generar imagen o audio|Programar interacción|Otro"],
+    ["noAiReason", "Si no se usó, ¿por qué?", "textarea", "La decisión puede ser estética, ética, pedagógica, técnica o de privacidad. No usar IA no reduce el valor del proyecto."],
+    ["aiToolVersion", "Herramienta y versión aproximada", "input", "Ej. ChatGPT, modelo y fecha; Canva; generador de audio; asistente de código."],
+    ["aiInputBoundary", "Qué información recibió y qué quedó fuera", "textarea", "No incluyas datos personales de quienes fueron observados o consultaron el oráculo."],
+    ["aiPrompt", "Instrucción utilizada", "textarea", "Copia la instrucción relevante y señala su versión."],
+    ["aiOutput", "Resultado recibido", "textarea", "Conserva el fragmento necesario para entender la decisión."],
+    ["aiComparison", "Lectura crítica", "textarea", "¿Qué simplifica, repite, inventa o vuelve predecible?"],
+    ["humanModification", "Transformación humana", "textarea", "¿Qué cambiaste y con qué criterio?"],
+    ["rejectedAiSuggestion", "Sugerencia rechazada", "textarea", "¿Qué decidiste no usar?"],
+    ["rejectionReason", "Razón del rechazo", "textarea", "Criterio narrativo, ético, factual o estético."],
+    ["verificationMethod", "Verificación", "textarea", "¿Qué dato, referencia, cita, imagen o funcionamiento necesitaba comprobarse y cómo se comprobó?"],
+    ["aiFinalUse", "Qué permanece en la versión final", "textarea", "Señala con precisión el fragmento, imagen, código o idea asistida que conserva el oráculo."],
+    ["aiObject", "Contrapunto conservado", "textarea", "Solo si ayuda a comparar versiones."]
+  ], ai: true },
+  { id: "testing", kicker: "Oráculo · prueba", title: "¿Cómo responde quien consulta?", purpose: "Prueba el oráculo con otras personas y registra interpretaciones, confusiones y hallazgos, no solo aprobación.", fields: [
+    ["testQuestion", "Qué necesitas descubrir", "textarea", "Formula una pregunta de prueba: claridad de las reglas, riqueza de interpretación, ritmo, accesibilidad, cuidado u otra."],
+    ["testProtocol", "Protocolo de tres consultas", "textarea", "Usa el mismo inicio y cierre; cambia las combinaciones. Registra duración, dudas, decisiones y momentos significativos."],
+    ["testAudience", "Quiénes probaron el oráculo", "textarea", "Número y perfiles generales. Evita datos personales innecesarios y aclara que es una experiencia literaria."],
+    ["testObservations", "Qué hicieron, dijeron o interpretaron", "textarea", "Registra acciones y frases breves antes de explicar lo que crees que significan. Incluye silencios y recorridos inesperados."],
+    ["testCriteria", "Lectura de la prueba", "textarea", "Valora: comprensión, participación, potencia narrativa, posibilidad de interpretación, duración, materialidad y accesibilidad."],
+    ["unexpectedReading", "Interpretación inesperada", "textarea", "¿Qué lectura no había previsto el equipo? ¿Revela riqueza, ambigüedad productiva o un problema?"],
+    ["biasReview", "Prejuicios, exclusiones o riesgos detectados", "textarea", "¿A quién representa, expone, diagnostica, caricaturiza o deja fuera? ¿Alguna respuesta parece sentencia?"],
+    ["revisionDecision", "Decisión de revisión", "textarea", "Indica qué cambiarás, qué conservarás y qué nueva prueba necesitas. Justifica cada decisión."],
+    ["versionEvidence", "Antes, después y evidencia", "textarea", "Enlaces, fotografías o archivos de ambas versiones, con fecha. No publiques rostros o testimonios sin autorización."]
+  ]},
+  { id: "final", kicker: "Oráculo · encuentro", title: "Presentación en la Feria de los Oráculos", purpose: "Reúne la experiencia final, su montaje público y la reflexión del equipo. La antología conserva una pieza literaria derivada del oráculo.", fields: [
+    ["finalTitle", "Título final", "input", "Título de la pieza o experiencia."],
+    ["finalSynopsis", "Texto de entrada para el público", "textarea", "En 50 a 80 palabras: qué encontrará, cómo participa y qué clase de experiencia es. No reveles toda la interpretación."],
+    ["fairPlan", "Recorrido de la estación", "textarea", "Llegada, espera, bienvenida, consulta, interpretación, cierre y salida. Incluye duración y capacidad."],
+    ["mediationScript", "Guion breve de mediación", "textarea", "Escribe la bienvenida, dos preguntas abiertas, el recordatorio de límites y la frase de cierre."],
+    ["fairRole", "Turnos y responsabilidades", "textarea", "Quién monta, recibe, media, repone materiales, cuida el espacio, documenta y desmonta."],
+    ["fairChecklist", "Lista de apertura", "textarea", "Oráculo completo, instructivo, señalización, accesibilidad, materiales de reposición, pruebas técnicas y plan alternativo."],
+    ["fairEvidence", "Documentación de la feria", "textarea", "Fotografías del montaje, número aproximado de consultas, observaciones, incidencias y enlaces. Protege la identidad del público."],
+    ["publicLearning", "Qué reveló el encuentro público", "textarea", "Una lectura inesperada, una dificultad y una decisión que tomarías para la siguiente versión."],
+    ["anthologyPiece", "Memoria literaria para la antología", "textarea", "Selecciona o adapta una pieza nacida del oráculo; no es un proyecto diferente. Incluye el texto final o su enlace."],
+    ["anthologyContext", "Nota para la antología", "textarea", "En 80 a 120 palabras, explica de qué oráculo nació la pieza y cómo funcionó en la feria."],
+    ["authorshipStatement", "Declaración de autoría y tecnologías", "textarea", "Aportes propios, colaboración, fuentes y herramientas empleadas."],
+    ["ideaShiftMoment", "Cómo cambió la obra", "textarea", "El giro más importante y la evidencia que lo demuestra."],
+    ["finalDelivery", "Carpeta o entrega final", "textarea", "Enlace a corpus, instrucciones, registro de versiones, evidencias de prueba, fotografías autorizadas y pieza de antología."],
+    ["reportSelfView", "El reporte representa tu proceso", "select", "Sí|Parcialmente|No|No estoy seguro/a"]
+  ]}
+];
+
+const writingStepsEnglish = [
+  {
+    id: "context",
+    kicker: "Overview",
+    title: "Project Identity",
+    purpose: "Create an independent project record for the Oracle Fair. The weekly schedule is context only; both groups follow the same creative process.",
+    fields: [
+      ["studentName", "Student or team name", "input", "Names of the project authors"],
+      ["groupName", "Course group", "input", "Creative Writing — group"],
+      ["weeklyHours", "Weekly class time", "select", "3 hours|6 hours|Other"],
+      ["teachingRole", "Teaching context", "select", "Lead instructor|Collaborative teaching"],
+      ["coTeacher", "Accompanying teacher", "input", "Name, when applicable"],
+      ["projectId", "Project code", "input", "Example: CW-301-T04"],
+      ["oracleName", "Oracle name", "input", "A distinctive working title"],
+      ["teamRoles", "Team members and responsibilities", "textarea", "Writing, research, design, testing, documentation and mediation."]
+    ]
+  },
+  {
+    id: "genre",
+    kicker: "Module 1 · Literary roots",
+    title: "Literary Roots, Genres & Transformation",
+    purpose: "Ground the oracle in literary tradition, then transform that tradition into a hybrid or emerging form.",
+    fields: [
+      ["classicGenre", "Classic genre of departure", "select", "Short story|Novel|Poetry|Drama|Essay|Epistle|Myth or legend|Other"],
+      ["genreModel", "Author, work or tradition", "textarea", "Identify the literary reference and the feature you want to understand."],
+      ["classicConvention", "Genre conventions", "textarea", "Voice, time, length, conflict, rhythm and reader relationship."],
+      ["formatGenealogy", "Transformation pathway", "select", "Short story → anthology series|Novel → audiovisual series|Epistle → email, chat or blog|Poetry → performance, audio or social media|Drama → podcast or interactive experience|Myth → transmedia world|Essay → hypertext or enriched book|Other"],
+      ["newFormat", "Contemporary form", "select", "Printed book|Series episode|Anthology episode|Email or blog|Podcast|Comic|Short video|Social network|Hypertext|Interactive experience|Other"],
+      ["transformationRule", "What remains and what changes?", "textarea", "Preserve one meaningful convention and transform another."],
+      ["hybridGenre", "Resulting hybrid genre", "textarea", "Example: short story + archive; poetry + game; epistle + blog."],
+      ["mediumReason", "Why this medium?", "textarea", "What narrative experience becomes possible in this form?"]
+    ]
+  },
+  {
+    id: "observation",
+    kicker: "Module 2 · Documentation",
+    title: "Observation, Listening & Otherness",
+    purpose: "Use SlowU documentation: pause, attend and record before interpreting. Build the human material of the oracle ethically.",
+    fields: [
+      ["observationSource", "Observed reality", "textarea", "Scene, person, place, object or artwork; include date and conditions."],
+      ["sensoryInventory", "Sensory inventory", "textarea", "Space, bodies, gestures, objects, voices, sounds, smells, temperature and silence."],
+      ["thickDescription", "Thick description", "textarea", "Write a situated record connecting details, context, actions and contradictions."],
+      ["factInference", "Observation vs. inference", "textarea", "Separate what you actually observed from what you assume or interpret."],
+      ["activeListening", "Active-listening trace", "textarea", "Record a phrase, pause, question or shift in perspective without unnecessary personal data."],
+      ["researchNotes", "Research questions and sources", "textarea", "What must be verified or expanded?"],
+      ["identityPosition", "Your position in the scene", "textarea", "How do your identity, experience and limits shape your gaze?"],
+      ["othernessPosition", "Otherness, prejudice and care", "textarea", "What bias do you recognize? What is not yours to tell? What requires consent or anonymity?"],
+      ["sourceLinks", "Field-note evidence", "textarea", "Notebook pages, files, photographs or links with dates."]
+    ]
+  },
+  {
+    id: "world",
+    kicker: "Module 3 · Oracle world",
+    title: "Oracle World & Ethical Boundaries",
+    purpose: "Translate historical research and observation into a coherent symbolic world without presenting the oracle as diagnosis or prediction.",
+    fields: [
+      ["historicalOracle", "Historical oracle or divination practice", "textarea", "Primary sources, myths, rituals, symbols and social function."],
+      ["worldName", "Oracle world or designation", "input", "Name of the symbolic world"],
+      ["worldDescription", "Origin story", "textarea", "How and why does this oracle exist?"],
+      ["sacredSpace", "Sacred or consultation space", "textarea", "Physical, digital or hybrid environment."],
+      ["oracleSymbolSystem", "Symbolic system", "textarea", "Families of symbols and their correspondences."],
+      ["systemRules", "System rules", "textarea", "What can and cannot happen during a consultation?"],
+      ["oraclePromise", "Ethical promise", "textarea", "Complete: This oracle does not predict the future; it helps people to…"],
+      ["careProtocol", "Boundaries and care", "textarea", "Privacy, agency, accessibility and the right to stop."]
+    ]
+  },
+  {
+    id: "logic",
+    kicker: "Module 4 · Narrative system",
+    title: "Voice, Structure & Oracle Grammar",
+    purpose: "Design the narrative pathway that turns a stimulus into a literary response.",
+    fields: [
+      ["narrativeVoice", "Narrative voice", "select", "First-person protagonist|First-person witness|Second person|Limited third person|Omniscient third person|Multiple voices|Non-human voice"],
+      ["focalization", "Who perceives, knows and remains silent?", "textarea", "Distinguish narrator from focal consciousness."],
+      ["voiceExperiment", "Two-voice experiment", "textarea", "Write the same event in two voices and preserve the rejected version."],
+      ["voiceDecision", "Selected voice and criterion", "textarea", "Why does it create the intended effect?"],
+      ["storyStructure", "Narrative structure", "select", "Linear|Circular|Fragmentary|Frame narrative|Heroic journey|Heroine's journey|Choral|Branching hypertext|Other"],
+      ["narrativeConflict", "Desire, obstacle and risk", "textarea", "What is wanted, what prevents it and what may be lost?"],
+      ["chanceRule", "Choice, chance and combination", "textarea", "What does the visitor choose, what is drawn and how are pieces combined?"],
+      ["interpretationGrammar", "Interpretation grammar", "textarea", "Rules connecting stimulus, symbol, context and literary response without prescribing decisions."],
+      ["oracleProcedure", "Consultation sequence", "textarea", "Welcome, question, selection, reading, dialogue, trace and closure."]
+    ]
+  },
+  {
+    id: "corpus",
+    kicker: "Module 5 · Human first",
+    title: "Human Corpus",
+    purpose: "Write the oracle's first literary corpus before using any generative system.",
+    fields: [
+      ["corpusUnit", "Minimum oracle unit", "textarea", "Symbol, title, fragment, question, instruction, prophecy or action."],
+      ["corpusPlan", "Response families", "textarea", "Create three to five families that prevent repetition."],
+      ["humanDraft", "Initial human corpus", "textarea", "Write eight to twelve short units for the first test."],
+      ["corpusVariation", "Variety and coherence", "textarea", "Which units comfort, disturb, contradict, question or invite action?"],
+      ["draftIntent", "Intended reader experience", "textarea", "What should the consultation make someone feel, notice or reconsider?"],
+      ["initialChoices", "Three writing decisions", "textarea", "Voice, image, rhythm, length, ambiguity or silence."],
+      ["discardedFragment", "Discarded or rewritten unit", "textarea", "Keep before and after; explain the revision."],
+      ["draftEvidence", "Dated first version", "textarea", "File, photograph or link."]
+    ]
+  },
+  {
+    id: "ai",
+    kicker: "Module 6 · Optional counterpoint",
+    title: "AI Counterpoint — Optional",
+    purpose: "Not using AI is a valid decision. If AI is used, document one specific intervention and the human decision that followed.",
+    fields: [
+      ["aiPurpose", "Purpose of AI use", "select", "Not used|Explore options|Challenge a decision|Style editing|Research|Image or audio|Interactive code|Other"],
+      ["noAiReason", "Reason for not using AI", "textarea", "Aesthetic, ethical, pedagogical, technical or privacy-based."],
+      ["aiToolVersion", "Tool, version and date", "input", "Record the approximate system used."],
+      ["aiInputBoundary", "Data provided and protected", "textarea", "Do not enter personal observation or consultation data."],
+      ["aiPrompt", "Relevant instruction", "textarea", "Preserve the exact version used."],
+      ["aiOutput", "Relevant output", "textarea", "Keep only what is necessary to understand the decision."],
+      ["aiComparison", "Critical reading", "textarea", "What did it simplify, repeat, fabricate or make predictable?"],
+      ["humanModification", "Human transformation", "textarea", "What changed and according to which narrative or ethical criterion?"],
+      ["rejectedAiSuggestion", "Rejected suggestion", "textarea", "What was deliberately excluded?"],
+      ["rejectionReason", "Reason for rejection", "textarea", "Narrative, factual, ethical or aesthetic criterion."],
+      ["verificationMethod", "Verification", "textarea", "How were facts, references, images or functionality checked?"],
+      ["aiFinalUse", "What remains in the final oracle", "textarea", "Identify the assisted element precisely."]
+    ],
+    ai: true
+  },
+  {
+    id: "archive",
+    kicker: "Module 7 · Process evidence",
+    title: "Process Archive & Cognitive Trace",
+    purpose: "Preserve literary outputs and reconstruct decisions without reducing authorship to a percentage.",
+    fields: [
+      ["oracleText", "Current oracle corpus", "textarea", "Microfiction, poetry, dialogue, ethical warning, future narrative or hybrid units."],
+      ["archiveTags", "Genre and theme tags", "textarea", "Track variety across the corpus."],
+      ["initialHypothesis", "What did we imagine initially?", "textarea", "Human starting point."],
+      ["aiObject", "What did AI suggest?", "textarea", "Only when AI was used."],
+      ["criticalDecision", "What did we reject or preserve?", "textarea", "Name the decisive choice."],
+      ["humanModification", "What did we transform?", "textarea", "Show before and after."],
+      ["authorshipStatement", "What remains distinctly ours?", "textarea", "Team contributions, sources, tools and responsibilities."],
+      ["versionEvidence", "Version evidence", "textarea", "Dated files, images or links."]
+    ]
+  },
+  {
+    id: "fair",
+    kicker: "Module 8 · Public encounter",
+    title: "Prototype, Testing & Oracle Fair",
+    purpose: "Test the oracle before the fair, revise it from evidence and design an accessible public encounter.",
+    fields: [
+      ["oracleMechanism", "Consultation mechanism", "select", "Cards or tarot|Story Dice|Paper dolls|Scents or sensory objects|Blocks or Jenga|Story box|Spatial path|Hypertext or screen|Hybrid|Other"],
+      ["publicationMedium", "Physical or electronic form", "select", "Card deck|Booklet|Editorial object|Dice and board|Sensory installation|Blog or social network|Twine or hypertext|Podcast or audio|Video|Enriched book|Hybrid installation|Other"],
+      ["physicalComponents", "Components and materiality", "textarea", "Scale, paper, texture, typography, sound, objects and storage."],
+      ["fairStation", "Fair station", "textarea", "Space, lighting, acoustics, seating, signage, duration and capacity."],
+      ["accessibility", "Accessibility alternatives", "textarea", "Contrast, legibility, captions, description, manipulation, language and non-sensory alternatives."],
+      ["testProtocol", "Three-consultation test", "textarea", "Use the same opening and closure; record duration, questions and decisions."],
+      ["testObservations", "Observed responses", "textarea", "Actions, phrases, silence, confusion and unexpected readings."],
+      ["biasReview", "Biases, exclusions and risks", "textarea", "Does any response diagnose, sentence, caricature or expose someone?"],
+      ["revisionDecision", "Revision decision", "textarea", "What changed, what remained and why?"],
+      ["mediationScript", "Mediation script", "textarea", "Welcome, open questions, limits and closing phrase."],
+      ["fairRole", "Team roles and setup list", "textarea", "Installation, welcome, mediation, documentation, care and dismantling."],
+      ["fairEvidence", "Fair evidence", "textarea", "Dated photographs, observations and approximate number of consultations; protect visitor identity."]
+    ]
+  },
+  {
+    id: "final",
+    kicker: "Module 9 · Publication and agency",
+    title: "Anthology Booklet & Manifesto",
+    purpose: "Publish one literary trace born from the oracle and defend the team's position on narrative agency and technology.",
+    fields: [
+      ["finalTitle", "Final title", "input", "Title of the oracle and public experience"],
+      ["finalSynopsis", "Public introduction", "textarea", "In 50–80 words: what visitors encounter and how they participate."],
+      ["anthologyPiece", "Anthology piece", "textarea", "Select or adapt one literary work born from the oracle; this is not a second project."],
+      ["anthologyContext", "Booklet note", "textarea", "In 80–120 words, explain the oracle, genre transformation and fair context."],
+      ["publicLearning", "What did the public encounter reveal?", "textarea", "One unexpected reading, one difficulty and one future revision."],
+      ["manifestoValues", "What human values shaped the oracle?", "textarea", "Agency, responsibility, uncertainty, plurality and care."],
+      ["manifestoAi", "What is the ethical role of AI?", "textarea", "Define its limits or explain why it was excluded."],
+      ["authorshipStatement", "Human authorship statement", "textarea", "Contributions, collaborations, sources and technologies."],
+      ["manifestoText", "Final manifesto", "textarea", "Defend the team's position on literary creation, interpretation and possible futures."],
+      ["finalDelivery", "Final evidence folder", "textarea", "Corpus, instructions, versions, tests, authorized fair evidence and anthology piece."],
+      ["reportSelfView", "Does this trace represent the process?", "select", "Yes|Partly|No|Not sure"]
+    ]
+  }
+];
+
+const routes = {
+  methods: {
+    title: "Laboratorio de Futuros",
+    short: "Métodos Creativos",
+    mark: "./assets/future-lab-mark.svg",
+    markAlt: "Emblema de Métodos Creativos",
+    tagline: "Historias que piensan. Futuros que elegimos.",
+    previewTitle: "Ficha curatorial",
+    labelType: "Objeto especulativo",
+    ribbons: ["Crear sentido", "Transformar futuros", "Diseñar artefactos"],
+    steps: methodsSteps,
+    core: ["studentName", "groupName", "worldName", "centralConflict", "values", "dilemmaType", "ethicalQuestion", "humanObjectOne", "aiComparison", "humanModification", "rejectedAiSuggestion", "rejectionReason", "requiredHuman", "objectName", "scale", "materials", "fabrication", "assembly", "reveals", "socialIssue", "ethicalPosition", "curatorialText"],
+    summaryLabels: ["Dilema", "Persona producida", "Problema social"]
+  },
+  writing: {
+    title: "Oracle & Prophecy Design",
+    short: "Creative Writing",
+    mark: "./assets/oracle-prophecy-mark.svg",
+    markAlt: "Oracle and Prophecy Design emblem",
+    tagline: "Observe. Write. Design interpretation.",
+    previewTitle: "Oracle Project Trace",
+    labelType: "Literary oracle",
+    ribbons: ["Ground the oracle", "Write the corpus", "Design the encounter"],
+    steps: writingStepsEnglish,
+    core: ["studentName", "groupName", "projectId", "classicGenre", "classicConvention", "formatGenealogy", "newFormat", "transformationRule", "mediumReason", "sensoryInventory", "thickDescription", "factInference", "activeListening", "identityPosition", "othernessPosition", "selectionReason", "narrativeVoice", "focalization", "voiceExperiment", "voiceDecision", "storyStructure", "structureEvidence", "narrativeConflict", "turningPoint", "writingConstraint", "corpusUnit", "corpusPlan", "humanDraft", "corpusVariation", "draftIntent", "discardedFragment", "oracleName", "oraclePromise", "oracleMechanism", "oracleSymbolSystem", "oracleQuestion", "chanceRule", "interpretationGrammar", "oracleProcedure", "mediatorRole", "oracleText", "careProtocol", "oraclePrototype", "publicationMedium", "physicalComponents", "materialDecisions", "fairStation", "accessibility", "takeaway", "platformMeaning", "productionPlan", "aiPurpose", "aiInputBoundary", "aiComparison", "humanModification", "rejectedAiSuggestion", "rejectionReason", "verificationMethod", "aiFinalUse", "testQuestion", "testProtocol", "testObservations", "testCriteria", "unexpectedReading", "biasReview", "revisionDecision", "versionEvidence", "finalTitle", "finalSynopsis", "fairPlan", "mediationScript", "fairRole", "fairEvidence", "publicLearning", "anthologyPiece", "anthologyContext", "authorshipStatement", "ideaShiftMoment", "finalDelivery"],
+    summaryLabels: ["Genre & form", "Voice & structure", "Final oracle"]
+  }
+};
+
+const interfaceCopy = {
+  methods: {
+    progress: (current, total) => `Paso ${current} de ${total}`,
+    complete: (percent) => `${percent}% completo`,
+    pilot: "Modo piloto: mostrar solo campos clave",
+    pilotNote: "Recorrido reducido activo. Los campos de apoyo están ocultos, pero no se borran.",
+    previous: "Anterior",
+    next: "Siguiente",
+    finish: "Finalizar y guardar PDF",
+    counterpoint: "Generar contrapunto",
+    report: "Ver reporte StoryQ",
+    reset: "Limpiar laboratorio",
+    journeyEyebrow: "Vista global",
+    journeyTitle: "Recorrido del pensamiento",
+    coreEyebrow: "Campos clave",
+    coreTitle: "Base del reporte",
+    traceEyebrow: "Trazabilidad",
+    traceTitle: "Proceso de pensamiento",
+    human: "Humano",
+    ai: "IA",
+    iterations: "Iteraciones"
+  },
+  writing: {
+    progress: (current, total) => `Step ${current} of ${total}`,
+    complete: (percent) => `${percent}% complete`,
+    pilot: "Pilot mode: show core fields only",
+    pilotNote: "Reduced route active. Supporting fields are hidden, not deleted.",
+    previous: "Previous",
+    next: "Next",
+    finish: "Finish and save PDF",
+    counterpoint: "Generate counterpoint",
+    report: "View StoryQ report",
+    reset: "Clear this project",
+    journeyEyebrow: "Whole journey",
+    journeyTitle: "Path of thought",
+    coreEyebrow: "Core fields",
+    coreTitle: "Report foundation",
+    traceEyebrow: "Traceability",
+    traceTitle: "Thinking process",
+    human: "Human",
+    ai: "AI",
+    iterations: "Iterations"
+  }
+};
+
+let activeRoute = localStorage.getItem("storyqActiveRoute") || "methods";
+if (!routes[activeRoute]) activeRoute = "methods";
+let steps = routes[activeRoute].steps;
+const legacyMethods = JSON.parse(localStorage.getItem("futureArtifactLab") || "{}");
+const routeStore = JSON.parse(localStorage.getItem("storyqRouteStore") || "{}");
+if (!routeStore.methods && Object.keys(legacyMethods).length) routeStore.methods = legacyMethods;
+let state = routeStore[activeRoute] || {};
+let current = Number(localStorage.getItem(`storyqStep:${activeRoute}`) || (activeRoute === "methods" ? localStorage.getItem("futureArtifactStep") : 0) || 0);
 let pilotMode = localStorage.getItem("futureArtifactPilotMode") === "true";
 
 const stepGuidance = {
@@ -180,35 +569,27 @@ const stepGuidance = {
   exit: { time: "5 min", mode: "Reflexionar", effort: "Usabilidad" }
 };
 
-const coreFields = new Set([
-  "studentName",
-  "groupName",
-  "worldName",
-  "centralConflict",
-  "values",
-  "dilemmaType",
-  "ethicalQuestion",
-  "humanObjectOne",
-  "aiComparison",
-  "humanModification",
-  "rejectedAiSuggestion",
-  "rejectionReason",
-  "requiredHuman",
-  "objectName",
-  "scale",
-  "materials",
-  "fabrication",
-  "assembly",
-  "reveals",
-  "socialIssue",
-  "ethicalPosition",
-  "curatorialText",
-  "mostHelpfulQuestion",
-  "mostConfusingQuestion",
-  "reportSelfView"
-]);
+Object.assign(stepGuidance, {
+  genre: { time: "12 min", mode: "Relacionar", effort: "Tradición + medio" },
+  observation: { time: "20 min", mode: "Documentar", effort: "Descripción densa" },
+  design: { time: "15 min", mode: "Construir", effort: "Voz + estructura" },
+  draft: { time: "25 min", mode: "Escribir", effort: "Humano primero" },
+  oracle: { time: "20 min", mode: "Diseñar", effort: "Feria" },
+  media: { time: "15 min", mode: "Publicar", effort: "Materialidad" },
+  testing: { time: "15 min", mode: "Escuchar", effort: "Prueba + revisión" },
+  final: { time: "15 min", mode: "Integrar", effort: "Feria + antología" },
+  question: { time: "10 min", mode: "Enlazar", effort: "Pregunta común" },
+  methodsLink: { time: "10 min", mode: "Recuperar", effort: "Métodos Creativos" },
+  writingLink: { time: "10 min", mode: "Recuperar", effort: "Creative Writing" },
+  bridge: { time: "15 min", mode: "Relacionar", effort: "Transferencia" },
+  decisions: { time: "15 min", mode: "Documentar", effort: "Iteraciones" },
+  public: { time: "12 min", mode: "Observar", effort: "Respuesta pública" },
+  synthesis: { time: "15 min", mode: "Reflexionar", effort: "Aprendizaje integrado" }
+});
 
-const fieldLabels = Object.fromEntries(
+let coreFields = new Set(routes[activeRoute].core);
+
+let fieldLabels = Object.fromEntries(
   steps.flatMap((step) => step.fields.map(([key, label]) => [key, label]))
 );
 
@@ -326,8 +707,32 @@ ensureTrace();
 function save() {
   ensureTrace();
   state._meta.lastUpdatedAt = new Date().toISOString();
-  localStorage.setItem("futureArtifactLab", JSON.stringify(state));
-  localStorage.setItem("futureArtifactStep", String(current));
+  routeStore[activeRoute] = state;
+  localStorage.setItem("storyqRouteStore", JSON.stringify(routeStore));
+  localStorage.setItem(`storyqStep:${activeRoute}`, String(current));
+  localStorage.setItem("storyqActiveRoute", activeRoute);
+  if (activeRoute === "methods") {
+    localStorage.setItem("futureArtifactLab", JSON.stringify(state));
+    localStorage.setItem("futureArtifactStep", String(current));
+  }
+}
+
+function switchRoute(routeId) {
+  if (!routes[routeId] || routeId === activeRoute) return;
+  save();
+  activeRoute = routeId;
+  steps = routes[activeRoute].steps;
+  state = routeStore[activeRoute] || {};
+  routeStore[activeRoute] = state;
+  current = Number(localStorage.getItem(`storyqStep:${activeRoute}`) || 0);
+  if (!steps[current]) current = 0;
+  coreFields = new Set(routes[activeRoute].core);
+  fieldLabels = Object.fromEntries(steps.flatMap((step) => step.fields.map(([key, label]) => [key, label])));
+  ensureTrace();
+  save();
+  document.querySelector("#evidencePanel").hidden = true;
+  render();
+  window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
 function filledFields() {
@@ -491,15 +896,54 @@ function renderCognitiveForm() {
 }
 
 function updateProgress() {
+  const copy = interfaceCopy[activeRoute];
   const percent = Math.round(filledFields() * 100);
   progressBar.style.width = `${percent}%`;
-  completionText.textContent = `${percent}% completo`;
-  stepCounter.textContent = `Paso ${current + 1} de ${steps.length}`;
+  completionText.textContent = copy.complete(percent);
+  stepCounter.textContent = copy.progress(current + 1, steps.length);
 }
 
 function render() {
+  if (!steps[current]) current = 0;
   const step = steps[current];
+  const route = routes[activeRoute];
+  const copy = interfaceCopy[activeRoute];
   const guidance = stepGuidance[step.id] || { time: "Flexible", mode: "Pensar", effort: "Proceso" };
+  document.body.dataset.route = activeRoute;
+  document.documentElement.lang = activeRoute === "writing" ? "en" : "es";
+  const routeMark = document.querySelector("#routeMark");
+  routeMark.src = route.mark;
+  routeMark.alt = route.markAlt;
+  document.querySelector("#routeTitle").textContent = route.title;
+  document.querySelector("#routeTagline").textContent = route.tagline;
+  document.querySelector("#previewTitle").textContent = route.previewTitle;
+  document.querySelector("#labelType").textContent = route.labelType;
+  document.querySelector("#studioRibbon").innerHTML = route.ribbons.map((item) => `<span>${item}</span>`).join("");
+  document.querySelector("#pilotToggleLabel").textContent = copy.pilot;
+  document.querySelector("#pilotModeNote").textContent = copy.pilotNote;
+  document.querySelector("#prevBtn").textContent = copy.previous;
+  document.querySelector("#nextBtn").textContent = current === steps.length - 1 ? copy.finish : copy.next;
+  document.querySelector("#aiBtn").textContent = copy.counterpoint;
+  document.querySelector("#evidenceBtn").textContent = copy.report;
+  document.querySelector("#resetBtn").textContent = copy.reset;
+  document.querySelector("#journeyEyebrow").textContent = copy.journeyEyebrow;
+  document.querySelector("#journeyTitle").textContent = copy.journeyTitle;
+  document.querySelector("#coreEyebrow").textContent = copy.coreEyebrow;
+  document.querySelector("#coreTitle").textContent = copy.coreTitle;
+  document.querySelector("#traceEyebrow").textContent = copy.traceEyebrow;
+  document.querySelector("#traceTitle").textContent = copy.traceTitle;
+  document.querySelector("#humanMetricLabel").textContent = copy.human;
+  document.querySelector("#aiMetricLabel").textContent = copy.ai;
+  document.querySelector("#iterationMetricLabel").textContent = copy.iterations;
+  route.summaryLabels.forEach((label, index) => {
+    document.querySelector(`#summaryLabel${["One", "Two", "Three"][index]}`).textContent = label;
+  });
+  document.querySelectorAll("[data-route]").forEach((button) => {
+    const selected = button.dataset.route === activeRoute;
+    button.classList.toggle("active", selected);
+    button.setAttribute("aria-pressed", String(selected));
+  });
+  document.querySelector("#sampleBtn").hidden = activeRoute !== "methods";
   pilotModeToggle.checked = pilotMode;
   pilotModeNote.hidden = !pilotMode;
   stepKicker.textContent = step.kicker;
@@ -523,36 +967,51 @@ function render() {
 }
 
 function renderPreview() {
-  document.querySelector("#labelWorld").textContent = state.worldName || "Sociedad por definir";
-  document.querySelector("#labelObject").textContent = state.objectName || "Artefacto sin nombre";
+  const route = routes[activeRoute];
+  const preview = activeRoute === "writing"
+    ? {
+        meta: state.classicGenre || state.newFormat || "Género por definir",
+        title: state.finalTitle || state.oracleName || "Obra sin título",
+        text: state.finalSynopsis || state.transformationRule || "La bitácora crecerá cuando definas la obra, el oráculo y su medio.",
+        summaries: [state.transformationRule || state.newFormat, `${state.narrativeVoice || ""} ${state.storyStructure || ""}`.trim(), state.oracleName || state.oracleProcedure]
+      }
+    : {
+          meta: state.worldName || "Sociedad por definir",
+          title: state.objectName || "Artefacto sin nombre",
+          text: [
+            state.curatorialText,
+            state.objectName && state.worldName
+              ? `Este artefacto pertenece a ${state.worldName}. Fue utilizado para ${state.declaredPurpose || "regular una práctica social aún no descrita"}. Su existencia indica que esta cultura valoraba ${state.values || "ciertos valores dominantes"} por encima de ${state.desirableFuture || "otras formas de vida"}.`
+              : ""
+          ].find(Boolean) || "La ficha aparecerá cuando completes los campos centrales del laboratorio.",
+          summaries: [state.ethicalQuestion || state.dilemmaType, state.requiredHuman, state.socialIssue]
+        };
 
-  const generatedLabel = [
-    state.curatorialText,
-    state.objectName && state.worldName
-      ? `Este artefacto pertenece a ${state.worldName}. Fue utilizado para ${state.declaredPurpose || "regular una practica social aun no descrita"}. Su existencia indica que esta cultura valoraba ${state.values || "ciertos valores dominantes"} por encima de ${state.desirableFuture || "otras formas de vida"}.`
-      : ""
-  ].find(Boolean);
-
-  document.querySelector("#labelText").textContent = generatedLabel || "La ficha aparecerá cuando escribas el texto curatorial o completes los campos centrales del laboratorio.";
-  document.querySelector("#summaryDilemma").textContent = compact(state.ethicalQuestion || state.dilemmaType);
-  document.querySelector("#summaryHuman").textContent = compact(state.requiredHuman);
-  document.querySelector("#summaryIssue").textContent = compact(state.socialIssue);
+  document.querySelector("#labelWorld").textContent = preview.meta;
+  document.querySelector("#labelObject").textContent = preview.title;
+  document.querySelector("#labelText").textContent = preview.text;
+  document.querySelector("#summaryDilemma").textContent = compact(preview.summaries[0]);
+  document.querySelector("#summaryHuman").textContent = compact(preview.summaries[1]);
+  document.querySelector("#summaryIssue").textContent = compact(preview.summaries[2]);
   renderJourney();
   renderCoreCompletion();
   renderTrace();
 }
 
 function renderJourney() {
-  const items = [
-    ["Contexto", state.groupName || state.activityName],
-    ["Sistema", state.worldName],
-    ["Conflicto", state.centralConflict || state.values],
-    ["Dilema", state.ethicalQuestion || state.dilemmaType],
-    ["Persona", state.requiredHuman],
-    ["Artefacto", state.objectName],
-    ["Materialidad", state.scale || state.materials || state.materiality],
-    ["Etica", state.socialIssue || state.ethicalPosition]
-  ];
+  const routeJourneys = {
+    methods: [
+      ["Contexto", state.groupName || state.activityName], ["Sistema", state.worldName], ["Conflicto", state.centralConflict || state.values],
+      ["Dilema", state.ethicalQuestion || state.dilemmaType], ["Persona", state.requiredHuman], ["Artefacto", state.objectName],
+      ["Materialidad", state.scale || state.materials || state.materiality], ["Ética", state.socialIssue || state.ethicalPosition]
+    ],
+    writing: [
+      ["Contexto", state.groupName || state.projectId], ["Género", state.classicGenre || state.hybridGenre], ["Documentación", state.thickDescription || state.observationSource],
+      ["Voz", state.narrativeVoice], ["Estructura", state.storyStructure || state.narrativeConflict], ["Oráculo", state.oracleName || state.oracleSymbolSystem],
+      ["Medio", state.publicationMedium || state.platformMeaning], ["Publicación", state.finalTitle || state.anthologyPiece]
+    ]
+  };
+  const items = routeJourneys[activeRoute];
   const map = document.querySelector("#journeyMap");
   map.innerHTML = items.map(([label, value], index) => `
     <div class="journey-item${String(value || "").trim() ? " filled" : ""}">
@@ -625,6 +1084,17 @@ function renderTrace() {
 }
 
 function generateCounterpoint() {
+  if (activeRoute === "writing") {
+    const voice = state.narrativeVoice || "la voz elegida";
+    const structure = state.storyStructure || "la estructura propuesta";
+    const oracle = state.oracleName || "el oráculo";
+    state.aiObject = `Contrapunto: narrar ${oracle} con una voz externa que contradiga ${voice} y reorganizar una escena fuera de ${structure}.`;
+    state.aiComparison = "Este contrapunto no es una solución: sirve para detectar qué decisiones de voz y estructura son esenciales y cuáles pueden transformarse.";
+    state._meta.aiCounterpoints += 1;
+    logEvent("ai", "Contraste IA", `Contrapunto narrativo ${state._meta.aiCounterpoints}`);
+    render();
+    return;
+  }
   const world = state.worldName || "esta sociedad";
   const conflict = state.centralConflict || state.ethicalQuestion || "su conflicto central";
   const value = state.values || "seguridad y eficiencia";
@@ -702,7 +1172,9 @@ function buildEvidence() {
   const stats = traceStats();
   const coreStats = coreCompletionStats();
   const payload = {
-    title: "StoryQ Studio - Reporte de trazabilidad cognitiva",
+    title: `StoryQ Studio — ${routes[activeRoute].short}`,
+    route: activeRoute,
+    projectId: state.projectId || "",
     exportedAt: new Date().toISOString(),
     participant: {
       name: state.studentName || "",
@@ -724,16 +1196,28 @@ function buildEvidence() {
       coreCompletionPercent: `${coreStats.percent}%`,
       missingCoreFields: coreStats.missing.map((key) => fieldLabels[key] || key)
     },
-    journey: {
-      context: state.groupName || state.activityName || "",
-      system: state.worldName || "",
-      conflict: state.centralConflict || "",
-      dilemma: state.ethicalQuestion || state.dilemmaType || "",
-      futureHuman: state.requiredHuman || "",
-      artifact: state.objectName || "",
-      materiality: state.scale || state.materials || state.materiality || "",
-      ethics: state.socialIssue || state.ethicalPosition || ""
-    },
+    journey: activeRoute === "writing"
+      ? {
+          context: state.groupName || state.projectId || "",
+          tradition: state.classicGenre || state.formatGenealogy || "",
+          documentation: state.thickDescription || state.observationSource || "",
+          voiceAndStructure: [state.narrativeVoice, state.storyStructure].filter(Boolean).join(" — "),
+          humanCorpus: state.humanDraft || "",
+          oracle: state.oracleName || state.oracleMechanism || "",
+          materiality: state.publicationMedium || state.platformMeaning || "",
+          testing: state.revisionDecision || "",
+          fairAndAnthology: state.finalTitle || state.anthologyPiece || ""
+        }
+      : {
+            context: state.groupName || state.activityName || "",
+            system: state.worldName || "",
+            conflict: state.centralConflict || "",
+            dilemma: state.ethicalQuestion || state.dilemmaType || "",
+            futureHuman: state.requiredHuman || "",
+            artifact: state.objectName || "",
+            materiality: state.scale || state.materials || state.materiality || "",
+            ethics: state.socialIssue || state.ethicalPosition || ""
+          },
     studentFeedback: {
       mostHelpfulQuestion: state.mostHelpfulQuestion || "",
       mostConfusingQuestion: state.mostConfusingQuestion || "",
@@ -748,9 +1232,107 @@ function buildEvidence() {
   return JSON.stringify(payload, null, 2);
 }
 
+function writingReportSections() {
+  return [
+    {
+      title: "Identidad del proyecto",
+      items: [
+        ["Clave", state.projectId], ["Equipo", state.studentName], ["Grupo", state.groupName],
+        ["Carga y docencia", [state.weeklyHours, state.teachingRole, state.coTeacher].filter(Boolean).join(" · ")],
+        ["Oráculo", state.oracleName], ["Promesa", state.oraclePromise]
+      ]
+    },
+    {
+      title: "Tradición y transformación",
+      items: [
+        ["Género de partida", state.classicGenre], ["Referencia", state.genreModel],
+        ["Convención reconocida", state.classicConvention], ["Genealogía", state.formatGenealogy],
+        ["Formato contemporáneo", state.newFormat], ["Decisión de transformación", state.transformationRule],
+        ["Aporte del medio", state.mediumReason]
+      ]
+    },
+    {
+      title: "Documentación y posición ética",
+      items: [
+        ["Realidad observada", state.observationSource], ["Descripción densa", state.thickDescription],
+        ["Observación e inferencia", state.factInference], ["Escucha activa", state.activeListening],
+        ["Identidad de quien observa", state.identityPosition], ["Otredad, prejuicio y cuidado", state.othernessPosition],
+        ["Evidencia de campo", state.sourceLinks]
+      ]
+    },
+    {
+      title: "Voz, estructura y corpus",
+      items: [
+        ["Voz y focalización", [state.narrativeVoice, state.focalization].filter(Boolean).join(" — ")],
+        ["Decisión de voz", state.voiceDecision], ["Estructura", state.storyStructure],
+        ["Conflicto y giro", [state.narrativeConflict, state.turningPoint].filter(Boolean).join(" — ")],
+        ["Unidad y familias", [state.corpusUnit, state.corpusPlan].filter(Boolean).join(" — ")],
+        ["Corpus humano inicial", state.humanDraft], ["Reescritura demostrada", state.discardedFragment]
+      ]
+    },
+    {
+      title: "Sistema de consulta",
+      items: [
+        ["Mecanismo", state.oracleMechanism], ["Símbolos", state.oracleSymbolSystem],
+        ["Entrada y azar", [state.oracleQuestion, state.chanceRule].filter(Boolean).join(" — ")],
+        ["Gramática de interpretación", state.interpretationGrammar], ["Guion", state.oracleProcedure],
+        ["Mediación", state.mediatorRole], ["Cuidado", state.careProtocol]
+      ]
+    },
+    {
+      title: "Materialidad, plataforma e IA",
+      items: [
+        ["Soporte", state.publicationMedium], ["Piezas y materialidad", [state.physicalComponents, state.materialDecisions].filter(Boolean).join(" — ")],
+        ["Estación y accesibilidad", [state.fairStation, state.accessibility].filter(Boolean).join(" — ")],
+        ["Aporte de la plataforma", state.platformMeaning], ["Uso de IA", state.aiPurpose],
+        ["Decisión humana", state.humanModification || state.noAiReason], ["Verificación y uso final", [state.verificationMethod, state.aiFinalUse].filter(Boolean).join(" — ")]
+      ]
+    },
+    {
+      title: "Prueba y revisión",
+      items: [
+        ["Pregunta de prueba", state.testQuestion], ["Protocolo", state.testProtocol],
+        ["Observaciones", state.testObservations], ["Interpretación inesperada", state.unexpectedReading],
+        ["Riesgos detectados", state.biasReview], ["Revisión decidida", state.revisionDecision],
+        ["Evidencia antes/después", state.versionEvidence]
+      ]
+    },
+    {
+      title: "Feria y antología",
+      items: [
+        ["Texto para el público", state.finalSynopsis], ["Recorrido y mediación", [state.fairPlan, state.mediationScript].filter(Boolean).join(" — ")],
+        ["Responsabilidades", state.fairRole], ["Registro de la feria", state.fairEvidence],
+        ["Aprendizaje público", state.publicLearning], ["Memoria literaria", state.anthologyPiece],
+        ["Nota de contexto", state.anthologyContext], ["Autoría y tecnologías", state.authorshipStatement],
+        ["Entrega final", state.finalDelivery]
+      ]
+    }
+  ];
+}
+
 function buildReadableReportText() {
   const stats = traceStats();
   const coreStats = coreCompletionStats();
+  if (activeRoute === "writing") {
+    const sections = writingReportSections().map((section) => [
+      section.title.toUpperCase(),
+      ...section.items.map(([label, value]) => `${label}: ${value || "No registrado"}`)
+    ].join("\n")).join("\n\n");
+    const timeline = state._timeline.length
+      ? state._timeline.map((event, index) => `${index + 1}. ${event.title} — ${event.detail || event.type}`).join("\n")
+      : "Sin eventos registrados.";
+    return [
+      "StoryQ Studio — Feria de los Oráculos",
+      `Campos clave: ${coreStats.filled}/${coreStats.total}`,
+      `Decisiones registradas: ${stats.decisions + stats.decisionTags}`,
+      `Iteraciones: ${stats.iterations}`,
+      "",
+      sections,
+      "",
+      "BITÁCORA DE DECISIONES",
+      timeline
+    ].join("\n");
+  }
   const interpretation = cognitiveInterpretation(stats).map((item) => `- ${item}`).join("\n");
   const timeline = state._timeline.length
     ? state._timeline.map((event, index) => {
@@ -837,6 +1419,30 @@ function renderReadableReport() {
   const stats = traceStats();
   const coreStats = coreCompletionStats();
   const report = document.querySelector("#readableReport");
+  if (activeRoute === "writing") {
+    const summary = `
+      <section>
+        <h4>Resumen de trazabilidad</h4>
+        <div class="report-metrics">
+          <div><span>Campos clave</span><strong>${coreStats.filled}/${coreStats.total}</strong></div>
+          <div><span>Decisiones</span><strong>${stats.decisions + stats.decisionTags}</strong></div>
+          <div><span>Iteraciones</span><strong>${stats.iterations}</strong></div>
+          <div><span>Contrapuntos IA</span><strong>${state._meta.aiCounterpoints || 0}</strong></div>
+        </div>
+      </section>
+    `;
+    const sections = writingReportSections().map((section) => {
+      const answers = section.items.map(([label, value]) => `
+        <dt>${label}</dt><dd>${compact(value, "No registrado")}</dd>
+      `).join("");
+      return `<section><h4>${section.title}</h4><dl>${answers}</dl></section>`;
+    }).join("");
+    const timeline = state._timeline.length
+      ? state._timeline.map((event) => `<li><strong>${event.title}</strong><span>${compact(event.detail, event.type)}</span></li>`).join("")
+      : "<li><strong>Sin eventos registrados</strong><span>La bitácora crecerá con decisiones e iteraciones.</span></li>";
+    report.innerHTML = `${summary}${sections}<section><h4>Bitácora de decisiones</h4><ol class="report-timeline">${timeline}</ol></section>`;
+    return;
+  }
   const timeline = state._timeline.length
     ? state._timeline.map((event, index) => {
         const time = new Date(event.at).toLocaleString("es-MX", {
@@ -975,16 +1581,23 @@ document.querySelector("#printBtn").addEventListener("click", () => window.print
 document.querySelector("#evidenceBtn").addEventListener("click", showEvidence);
 document.querySelector("#copyReadableBtn").addEventListener("click", copyReadableReport);
 document.querySelector("#copyEvidenceBtn").addEventListener("click", copyEvidence);
+document.querySelectorAll("[data-route]").forEach((button) => {
+  button.addEventListener("click", () => switchRoute(button.dataset.route));
+});
 pilotModeToggle.addEventListener("change", () => {
   pilotMode = pilotModeToggle.checked;
   localStorage.setItem("futureArtifactPilotMode", String(pilotMode));
   render();
 });
 document.querySelector("#resetBtn").addEventListener("click", () => {
-  if (!confirm("Esto borrara el laboratorio guardado en este navegador.")) return;
-  localStorage.removeItem("futureArtifactLab");
-  localStorage.removeItem("futureArtifactStep");
-  localStorage.removeItem("futureArtifactPilotMode");
+  if (!confirm(`Esto borrará únicamente el recorrido “${routes[activeRoute].title}” guardado en este navegador.`)) return;
+  delete routeStore[activeRoute];
+  localStorage.setItem("storyqRouteStore", JSON.stringify(routeStore));
+  localStorage.removeItem(`storyqStep:${activeRoute}`);
+  if (activeRoute === "methods") {
+    localStorage.removeItem("futureArtifactLab");
+    localStorage.removeItem("futureArtifactStep");
+  }
   Object.keys(state).forEach((key) => delete state[key]);
   current = 0;
   pilotMode = false;
