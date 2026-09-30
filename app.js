@@ -507,7 +507,7 @@ const interfaceCopy = {
     previous: "Anterior",
     next: "Siguiente",
     finish: "Finalizar y guardar PDF",
-    counterpoint: "Generar contrapunto",
+    counterpoint: "Ver contrapunto de muestra",
     report: "Ver reporte StoryQ",
     reset: "Limpiar laboratorio",
     journeyEyebrow: "Vista global",
@@ -528,7 +528,7 @@ const interfaceCopy = {
     previous: "Previous",
     next: "Next",
     finish: "Finish and save PDF",
-    counterpoint: "Generate counterpoint",
+    counterpoint: "View sample counterpoint",
     report: "View StoryQ report",
     reset: "Clear this project",
     journeyEyebrow: "Whole journey",
@@ -543,7 +543,22 @@ const interfaceCopy = {
   }
 };
 
-let activeRoute = localStorage.getItem("storyqActiveRoute") || "methods";
+routes.open = {
+  ...routes.methods, title: "Mi actividad", short: "Cualquier materia",
+  tagline: "Aprender, decidir y reconocer lo que falta.", previewTitle: "Mi aprendizaje",
+  labelType: "Actividad abierta", ribbons: ["Pensar primero", "Decidir con razones", "Reflexionar sin penalización"],
+  steps: openActivitySteps, core: ["activityName", "learningGoal", "initialIdea", "decisionReason", "finalResult"],
+  summaryLabels: ["Propósito", "Mi decisión", "Próximo paso"]
+};
+interfaceCopy.open = { ...interfaceCopy.methods };
+for (const route of Object.values(routes)) route.steps.push(...reflectionSteps);
+for (const copy of Object.values(interfaceCopy)) {
+  copy.human = "Momentos con decisión";
+  copy.ai = "Contrapuntos de muestra";
+  copy.complete = percent => `${percent}% de campos clave · no es calificación`;
+}
+
+let activeRoute = localStorage.getItem("storyqActiveRoute") || "open";
 if (!routes[activeRoute]) activeRoute = "methods";
 let steps = routes[activeRoute].steps;
 const legacyMethods = JSON.parse(localStorage.getItem("futureArtifactLab") || "{}");
@@ -611,10 +626,10 @@ const cognitiveForm = document.querySelector("#cognitiveForm");
 const cognitiveStepName = document.querySelector("#cognitiveStepName");
 
 const cognitiveControls = [
-  ["aiFunction", "Funcion de la IA", "Sin IA|Exploracion|Ayudante|Contraste cognitivo|Oponente"],
-  ["aiIntervention", "Intervencion de IA", "Ninguna|Baja|Moderada|Alta"],
-  ["humanIntervention", "Intervencion humana", "Alta|Moderada|Baja"],
-  ["cognitiveValue", "Valor cognitivo", "Pensamiento critico|Creatividad|Memoria activa|Metacognicion|Resolucion de problemas|Vision prospectiva"],
+  ["aiFunction", "Funcion de la IA", "No registrado|Sin IA|Exploracion|Ayudante|Contraste cognitivo|Oponente"],
+  ["aiIntervention", "Intervencion de IA", "No registrado|Ninguna|Baja|Moderada|Alta"],
+  ["humanIntervention", "Intervencion humana", "No registrado|Alta|Moderada|Baja"],
+  ["cognitiveValue", "Valor cognitivo", "No registrado|No aplica|Pensamiento critico|Creatividad|Memoria activa|Metacognicion|Resolucion de problemas|Vision prospectiva"],
   ["decisionMoment", "Momento de decision", "Sin decision critica|Eleccion de idea|Rechazo de sugerencia|Cambio de postura|Sintesis final"]
 ];
 
@@ -736,7 +751,7 @@ function switchRoute(routeId) {
 }
 
 function filledFields() {
-  const all = steps.flatMap((step) => step.fields.map((field) => field[0]));
+  const all = [...coreFields];
   return all.filter((key) => String(state[key] || "").trim()).length / all.length;
 }
 
@@ -780,7 +795,7 @@ function renderField([key, label, type, hint]) {
   const wrap = document.createElement("div");
   const isCore = coreFields.has(key);
   wrap.className = `field${isCore ? " core-field" : " support-field"}`;
-  if (pilotMode && !isCore) wrap.hidden = true;
+  if (pilotMode && activeRoute !== "open" && !isCore && !["learningPitch", "learningEvidence"].includes(steps[current].id)) wrap.hidden = true;
 
   const labelEl = document.createElement("label");
   labelEl.setAttribute("for", key);
@@ -805,7 +820,7 @@ function renderField([key, label, type, hint]) {
   }
   control.id = key;
   control.name = key;
-  control.value = state[key] || "";
+  control.value = state[key] || (type === "select" ? hint.split("|")[0] : "");
   const initialValue = state[key] || "";
   control.addEventListener("input", () => {
     state[key] = control.value;
@@ -819,7 +834,7 @@ function renderField([key, label, type, hint]) {
     if (!value) return;
     if (!state._fieldTouched[key] && !initialValue) {
       state._fieldTouched[key] = true;
-      logEvent("idea", "Idea original", label);
+      logEvent("idea", "Campo registrado", label);
     } else if (value !== initialValue) {
       state._fieldTouched[key] = true;
       state._fieldChanged[key] = (state._fieldChanged[key] || 0) + 1;
@@ -841,10 +856,10 @@ function currentTags() {
   ensureTrace();
   const stepId = steps[current].id;
   state._cognitiveTags[stepId] ||= {
-    aiFunction: stepId === "ai" ? "Contraste cognitivo" : "Sin IA",
-    aiIntervention: stepId === "ai" ? "Moderada" : "Ninguna",
-    humanIntervention: "Alta",
-    cognitiveValue: "Pensamiento critico",
+    aiFunction: "No registrado",
+    aiIntervention: "No registrado",
+    humanIntervention: "No registrado",
+    cognitiveValue: "No registrado",
     decisionMoment: "Sin decision critica",
     decisionWhy: ""
   };
@@ -960,7 +975,8 @@ function render() {
   prevBtn.disabled = current === 0;
   nextBtn.textContent = current === steps.length - 1 ? "Finalizar" : "Siguiente";
   aiBtn.style.visibility = step.ai ? "visible" : "hidden";
-  renderCognitiveForm();
+  document.querySelector(".cognitive-card").hidden = ["learningPitch", "learningEvidence"].includes(step.id);
+  if (!["learningPitch", "learningEvidence"].includes(step.id)) renderCognitiveForm();
   renderNav();
   renderPreview();
   updateProgress();
@@ -968,7 +984,7 @@ function render() {
 
 function renderPreview() {
   const route = routes[activeRoute];
-  const preview = activeRoute === "writing"
+  const preview = activeRoute === "open" ? { meta: state.subjectName || "Cualquier materia", title: state.activityName || "Mi actividad", text: state.finalResult || state.learningGoal || "Tu aprendizaje empieza con una pregunta propia.", summaries: [state.learningGoal, state.decisionReason, state.pitchNext] } : activeRoute === "writing"
     ? {
         meta: state.classicGenre || state.newFormat || "Género por definir",
         title: state.finalTitle || state.oracleName || "Obra sin título",
@@ -1011,14 +1027,14 @@ function renderJourney() {
       ["Medio", state.publicationMedium || state.platformMeaning], ["Publicación", state.finalTitle || state.anthologyPiece]
     ]
   };
-  const items = routeJourneys[activeRoute];
+  const items = routeJourneys[activeRoute] || [["Propósito", state.learningGoal], ["Punto de partida", state.initialIdea], ["Colaboración", state.aiPurpose], ["Contraste", state.verificationMethod], ["Decisión", state.decisionReason], ["Reflexión", state.pitchLearning]];
   const map = document.querySelector("#journeyMap");
   map.innerHTML = items.map(([label, value], index) => `
     <div class="journey-item${String(value || "").trim() ? " filled" : ""}">
       <span>${index + 1}</span>
       <div>
         <strong>${label}</strong>
-        <p>${compact(value, "Pendiente")}</p>
+        <p>${escapeReport(compact(value, "Pendiente"))}</p>
       </div>
     </div>
   `).join("");
@@ -1039,8 +1055,6 @@ function traceStats() {
   ensureTrace();
   const fields = steps.flatMap((step) => step.fields.map((field) => field[0]));
   const filled = fields.filter((key) => String(state[key] || "").trim()).length;
-  const aiWeight = Math.min(60, (state._meta.aiCounterpoints || 0) * 15 + (String(state.aiObject || "").trim() ? 15 : 0));
-  const humanWeight = Math.max(40, 100 - aiWeight);
   const minutes = Math.max(0, Math.round((new Date() - new Date(state._meta.startedAt)) / 60000));
   const tagValues = Object.values(state._cognitiveTags || {});
   const decisionTags = tagValues.filter((tag) => tag.decisionMoment && tag.decisionMoment !== "Sin decision critica").length;
@@ -1048,8 +1062,6 @@ function traceStats() {
   return {
     filled,
     total: fields.length,
-    aiWeight,
-    humanWeight,
     minutes,
     iterations: state._timeline.length,
     decisions: state._meta.decisions || 0,
@@ -1061,9 +1073,9 @@ function traceStats() {
 
 function renderTrace() {
   const stats = traceStats();
-  document.querySelector("#traceScore").textContent = `${stats.decisions} decisiones`;
-  document.querySelector("#humanPercent").textContent = `${stats.humanWeight}%`;
-  document.querySelector("#aiPercent").textContent = `${stats.aiWeight}%`;
+  document.querySelector("#traceScore").textContent = `${stats.decisions} eventos de decisión`;
+  document.querySelector("#humanPercent").textContent = String(stats.decisionTags);
+  document.querySelector("#aiPercent").textContent = String(state._meta.aiCounterpoints || 0);
   document.querySelector("#iterationCount").textContent = String(stats.iterations);
 
   const list = document.querySelector("#timelineList");
@@ -1174,6 +1186,8 @@ function buildEvidence() {
   const payload = {
     title: `StoryQ Studio — ${routes[activeRoute].short}`,
     route: activeRoute,
+    schemaVersion: "3.0-reflection",
+    learningReview: { source: state.reviewSource || "No evaluado", reflection: state.reflectionStatus || "No evaluado", understanding: state.understandingStatus || "No evaluado", evidence: state.reviewEvidence || "", uncertainty: state.pitchOpen || "", uncertaintyPenalty: false },
     projectId: state.projectId || "",
     exportedAt: new Date().toISOString(),
     participant: {
@@ -1184,8 +1198,7 @@ function buildEvidence() {
       date: state.sessionDate || ""
     },
     cognitiveProfile: {
-      estimatedHumanWork: `${stats.humanWeight}%`,
-      estimatedAiAssistedWork: `${stats.aiWeight}%`,
+      scope: "Registro de actividad; no mide proporciones de autoría ni salud cognitiva",
       timeInvestedMinutes: stats.minutes,
       iterations: stats.iterations,
       criticalDecisions: stats.decisions,
@@ -1196,7 +1209,7 @@ function buildEvidence() {
       coreCompletionPercent: `${coreStats.percent}%`,
       missingCoreFields: coreStats.missing.map((key) => fieldLabels[key] || key)
     },
-    journey: activeRoute === "writing"
+    journey: activeRoute === "open" ? { goal: state.learningGoal || "", initialIdea: state.initialIdea || "", verification: state.verificationMethod || "", decision: state.decisionReason || "", result: state.finalResult || "" } : activeRoute === "writing"
       ? {
           context: state.groupName || state.projectId || "",
           tradition: state.classicGenre || state.formatGenealogy || "",
@@ -1310,221 +1323,37 @@ function writingReportSections() {
   ];
 }
 
+function reportSections() {
+  return steps.map(step => ({ title: step.title, items: step.fields.map(([key, label]) => [label, state[key] || (["reflectionStatus", "understandingStatus", "reviewSource"].includes(key) ? "No evaluado" : "Sin registro")]) }));
+}
 function buildReadableReportText() {
-  const stats = traceStats();
-  const coreStats = coreCompletionStats();
-  if (activeRoute === "writing") {
-    const sections = writingReportSections().map((section) => [
-      section.title.toUpperCase(),
-      ...section.items.map(([label, value]) => `${label}: ${value || "No registrado"}`)
-    ].join("\n")).join("\n\n");
-    const timeline = state._timeline.length
-      ? state._timeline.map((event, index) => `${index + 1}. ${event.title} — ${event.detail || event.type}`).join("\n")
-      : "Sin eventos registrados.";
-    return [
-      "StoryQ Studio — Feria de los Oráculos",
-      `Campos clave: ${coreStats.filled}/${coreStats.total}`,
-      `Decisiones registradas: ${stats.decisions + stats.decisionTags}`,
-      `Iteraciones: ${stats.iterations}`,
-      "",
-      sections,
-      "",
-      "BITÁCORA DE DECISIONES",
-      timeline
-    ].join("\n");
-  }
-  const interpretation = cognitiveInterpretation(stats).map((item) => `- ${item}`).join("\n");
-  const timeline = state._timeline.length
-    ? state._timeline.map((event, index) => {
-        const time = new Date(event.at).toLocaleString("es-MX", {
-          day: "2-digit",
-          month: "short",
-          hour: "2-digit",
-          minute: "2-digit"
-        });
-        return `${index + 1}. ${event.title} (${time}) - ${event.detail || event.type}`;
-      }).join("\n")
-    : "Sin eventos registrados.";
-
-  return [
-    "StoryQ Studio - Reporte de trazabilidad cognitiva",
-    "",
-    "CONTEXTO",
-    `Participante: ${state.studentName || "No registrado"}`,
-    `Grupo: ${state.groupName || "No registrado"}`,
-    `Actividad: ${state.activityName || "No registrada"}`,
-    `Docente: ${state.teacherName || "No registrada"}`,
-    "",
-    "PERFIL COGNITIVO",
-    `Trabajo humano estimado: ${stats.humanWeight}%`,
-    `Trabajo asistido por IA: ${stats.aiWeight}%`,
-    `Tiempo invertido: ${stats.minutes} min`,
-    `Iteraciones: ${stats.iterations}`,
-    `Decisiones criticas: ${stats.decisions + stats.decisionTags}`,
-    `Contrapuntos IA: ${state._meta.aiCounterpoints}`,
-    `Campos clave completos: ${coreStats.filled}/${coreStats.total} (${coreStats.percent}%)`,
-    `Campos clave pendientes: ${coreStats.missing.map((key) => fieldLabels[key] || key).join("; ") || "Ninguno"}`,
-    "",
-    "LECTURA DOCENTE",
-    interpretation || "- Sin lectura generada.",
-    "",
-    "CONTRASTE HUMANO/IA",
-    `Modificacion humana: ${state.humanModification || "No registrada"}`,
-    `Sugerencia de IA rechazada: ${state.rejectedAiSuggestion || "No registrada"}`,
-    `Criterio de rechazo: ${state.rejectionReason || "No registrado"}`,
-    "",
-    "EXPERIENCIA DEL ESTUDIANTE",
-    `Pregunta mas util: ${state.mostHelpfulQuestion || "No registrada"}`,
-    `Momento de cambio: ${state.ideaShiftMoment || "No registrado"}`,
-    `El reporte representa su proceso: ${state.reportSelfView || "No registrado"}`,
-    `Que reduciria: ${state.whatToRemove || "No registrado"}`,
-    "",
-    "ARTEFACTO",
-    `Mundo: ${state.worldName || "No registrado"}`,
-    `Artefacto: ${state.objectName || "No registrado"}`,
-    `Escala: ${state.scale || "No registrada"}`,
-    `Materiales: ${state.materials || "No registrados"}`,
-    `Fabricacion: ${state.fabrication || "No registrada"}`,
-    `Ensamblaje: ${state.assembly || "No registrado"}`,
-    `Dilema: ${state.ethicalQuestion || state.dilemmaType || "No registrado"}`,
-    `Problema social: ${state.socialIssue || "No registrado"}`,
-    "",
-    "LINEA DE TIEMPO",
-    timeline
-  ].join("\n");
+  ensureTrace();
+  return ["StoryQIA Studio — " + routes[activeRoute].short,
+    "Evidencias de agencia y aprendizaje. Las dudas no restan puntos. Sin registro no significa falta de capacidad. La etiqueta identifica el tipo de revisión declarado.",
+    ...reportSections().map(section => section.title + "\n" + section.items.map(([label, value]) => label + ": " + value).join("\n")),
+    "ETIQUETAS POR MOMENTO\n" + Object.entries(state._cognitiveTags || {}).map(([id, tag]) => (steps.find(step => step.id === id)?.title || id) + ": " + Object.entries(tag).map(([key, value]) => key + " — " + value).join("; ")).join("\n"),
+    "BITÁCORA\n" + state._timeline.map(event => event.title + ": " + (event.detail || event.type)).join("\n")].join("\n\n");
 }
-
-function cognitiveInterpretation(stats) {
-  const reflections = [];
-  if (stats.humanWeight >= 70) {
-    reflections.push("Predomina la intervencion humana. La IA aparece como apoyo o contraste, no como sustitucion del proceso.");
-  } else {
-    reflections.push("Hay una presencia importante de asistencia de IA. Conviene revisar si el estudiante justifico que acepto, modifico o rechazo.");
-  }
-  if (stats.decisions + stats.decisionTags >= 3) {
-    reflections.push("El proceso muestra varios momentos de decision, lo que permite reconstruir cambios de criterio.");
-  } else {
-    reflections.push("Aun hay pocos momentos de decision registrados. Para investigacion, convendria pedir mas justificaciones breves.");
-  }
-  if (String(state.rejectedAiSuggestion || "").trim()) {
-    reflections.push("Existe evidencia de rechazo critico de una sugerencia de IA.");
-  }
-  if (String(state.humanModification || "").trim()) {
-    reflections.push("Existe evidencia de modificacion humana posterior al contraste.");
-  }
-  return reflections;
+function escapeReport(value) {
+  return String(value).replace(/[&<>"']/g, char => ({"&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;"}[char]));
 }
-
 function renderReadableReport() {
-  const stats = traceStats();
-  const coreStats = coreCompletionStats();
   const report = document.querySelector("#readableReport");
-  if (activeRoute === "writing") {
-    const summary = `
-      <section>
-        <h4>Resumen de trazabilidad</h4>
-        <div class="report-metrics">
-          <div><span>Campos clave</span><strong>${coreStats.filled}/${coreStats.total}</strong></div>
-          <div><span>Decisiones</span><strong>${stats.decisions + stats.decisionTags}</strong></div>
-          <div><span>Iteraciones</span><strong>${stats.iterations}</strong></div>
-          <div><span>Contrapuntos IA</span><strong>${state._meta.aiCounterpoints || 0}</strong></div>
-        </div>
-      </section>
-    `;
-    const sections = writingReportSections().map((section) => {
-      const answers = section.items.map(([label, value]) => `
-        <dt>${label}</dt><dd>${compact(value, "No registrado")}</dd>
-      `).join("");
-      return `<section><h4>${section.title}</h4><dl>${answers}</dl></section>`;
-    }).join("");
-    const timeline = state._timeline.length
-      ? state._timeline.map((event) => `<li><strong>${event.title}</strong><span>${compact(event.detail, event.type)}</span></li>`).join("")
-      : "<li><strong>Sin eventos registrados</strong><span>La bitácora crecerá con decisiones e iteraciones.</span></li>";
-    report.innerHTML = `${summary}${sections}<section><h4>Bitácora de decisiones</h4><ol class="report-timeline">${timeline}</ol></section>`;
-    return;
+  report.replaceChildren();
+  const heading = document.createElement("h3");
+  heading.textContent = "Evidencias de agencia y aprendizaje";
+  const note = document.createElement("p");
+  note.textContent = "Reconocer dudas no resta puntos ni bloquea la entrega. No evaluado no significa falta de capacidad. La reflexión y la comprensión se registran por separado. La etiqueta identifica el tipo de revisión declarado.";
+  report.append(heading, note);
+  for (const section of reportSections()) {
+    const element = document.createElement("section");
+    element.innerHTML = `<h4>${escapeReport(section.title)}</h4><dl>${section.items.map(([label, value]) => `<dt>${escapeReport(label)}</dt><dd>${escapeReport(value)}</dd>`).join("")}</dl>`;
+    report.append(element);
   }
-  const timeline = state._timeline.length
-    ? state._timeline.map((event, index) => {
-        const time = new Date(event.at).toLocaleString("es-MX", {
-          day: "2-digit",
-          month: "short",
-          hour: "2-digit",
-          minute: "2-digit"
-        });
-        return `<li><strong>${index + 1}. ${event.title}</strong><span>${time} - ${event.detail || event.type}</span></li>`;
-      }).join("")
-    : "<li><strong>Sin eventos registrados</strong><span>El reporte crecera cuando el estudiante escriba, contraste o tome decisiones.</span></li>";
-
-  const interpretation = cognitiveInterpretation(stats).map((item) => `<li>${item}</li>`).join("");
-  const tagSummary = Object.entries(state._cognitiveTags || {}).map(([stepId, tag]) => {
-    const step = steps.find((item) => item.id === stepId);
-    return `<li><strong>${step?.title || stepId}</strong><span>${tag.aiFunction}; ${tag.humanIntervention}; ${tag.cognitiveValue}; ${tag.decisionMoment}</span></li>`;
-  }).join("") || "<li><strong>Sin etiquetas aun</strong><span>Las etiquetas apareceran al avanzar por los pasos.</span></li>";
-
-  report.innerHTML = `
-    <section>
-      <h4>Contexto</h4>
-      <dl>
-        <dt>Participante</dt><dd>${compact(state.studentName, "No registrado")}</dd>
-        <dt>Grupo</dt><dd>${compact(state.groupName, "No registrado")}</dd>
-        <dt>Actividad</dt><dd>${compact(state.activityName, "No registrada")}</dd>
-        <dt>Docente</dt><dd>${compact(state.teacherName, "No registrada")}</dd>
-      </dl>
-    </section>
-    <section>
-      <h4>Perfil cognitivo</h4>
-      <div class="report-metrics">
-        <div><span>Trabajo humano estimado</span><strong>${stats.humanWeight}%</strong></div>
-        <div><span>Trabajo asistido por IA</span><strong>${stats.aiWeight}%</strong></div>
-        <div><span>Tiempo invertido</span><strong>${stats.minutes} min</strong></div>
-        <div><span>Iteraciones</span><strong>${stats.iterations}</strong></div>
-        <div><span>Decisiones criticas</span><strong>${stats.decisions + stats.decisionTags}</strong></div>
-        <div><span>Contrapuntos IA</span><strong>${state._meta.aiCounterpoints}</strong></div>
-        <div><span>Campos clave</span><strong>${coreStats.filled}/${coreStats.total}</strong></div>
-      </div>
-    </section>
-    <section>
-      <h4>Lectura docente</h4>
-      <ul>${interpretation}</ul>
-    </section>
-    <section>
-      <h4>Experiencia del estudiante</h4>
-      <dl>
-        <dt>Pregunta mas util</dt><dd>${compact(state.mostHelpfulQuestion, "No registrada")}</dd>
-        <dt>Momento de cambio</dt><dd>${compact(state.ideaShiftMoment, "No registrado")}</dd>
-        <dt>El reporte representa su proceso</dt><dd>${compact(state.reportSelfView, "No registrado")}</dd>
-        <dt>Que reduciria</dt><dd>${compact(state.whatToRemove, "No registrado")}</dd>
-      </dl>
-    </section>
-    <section>
-      <h4>Contraste humano/IA</h4>
-      <dl>
-        <dt>Modificacion humana</dt><dd>${compact(state.humanModification, "No registrada")}</dd>
-        <dt>Sugerencia rechazada</dt><dd>${compact(state.rejectedAiSuggestion, "No registrada")}</dd>
-        <dt>Criterio de rechazo</dt><dd>${compact(state.rejectionReason, "No registrado")}</dd>
-      </dl>
-    </section>
-    <section>
-      <h4>Recorrido global</h4>
-      <dl>
-        <dt>Sistema</dt><dd>${compact(state.worldName, "No registrado")}</dd>
-        <dt>Conflicto</dt><dd>${compact(state.centralConflict, "No registrado")}</dd>
-        <dt>Dilema</dt><dd>${compact(state.ethicalQuestion || state.dilemmaType, "No registrado")}</dd>
-        <dt>Persona producida</dt><dd>${compact(state.requiredHuman, "No registrada")}</dd>
-        <dt>Artefacto</dt><dd>${compact(state.objectName, "No registrado")}</dd>
-        <dt>Materialidad</dt><dd>${compact(state.scale || state.materials || state.materiality, "No registrada")}</dd>
-        <dt>Etica</dt><dd>${compact(state.socialIssue || state.ethicalPosition, "No registrada")}</dd>
-      </dl>
-    </section>
-    <section>
-      <h4>Etiquetas cognitivas</h4>
-      <ul class="report-list">${tagSummary}</ul>
-    </section>
-    <section>
-      <h4>Linea de tiempo</h4>
-      <ol class="report-timeline">${timeline}</ol>
-    </section>
-  `;
+  const trace = document.createElement("pre");
+  trace.className = "report-details";
+  trace.textContent = buildReadableReportText().split("ETIQUETAS POR MOMENTO\n")[1];
+  report.append(trace);
 }
 
 function showEvidence() {
@@ -1571,13 +1400,13 @@ nextBtn.addEventListener("click", () => {
     save();
     render();
   } else {
-    window.print();
+    printLearningReport();
   }
 });
 
 aiBtn.addEventListener("click", generateCounterpoint);
 document.querySelector("#sampleBtn").addEventListener("click", loadSampleLab);
-document.querySelector("#printBtn").addEventListener("click", () => window.print());
+document.querySelector("#printBtn").addEventListener("click", () => printLearningReport());
 document.querySelector("#evidenceBtn").addEventListener("click", showEvidence);
 document.querySelector("#copyReadableBtn").addEventListener("click", copyReadableReport);
 document.querySelector("#copyEvidenceBtn").addEventListener("click", copyEvidence);
@@ -1606,3 +1435,10 @@ document.querySelector("#resetBtn").addEventListener("click", () => {
 });
 
 render();
+
+function printLearningReport() {
+  renderReadableReport();
+  document.querySelector("#evidencePanel").hidden = false;
+  window.print();
+}
+window.addEventListener("beforeprint", () => { renderReadableReport(); document.querySelector("#evidencePanel").hidden = false; });
