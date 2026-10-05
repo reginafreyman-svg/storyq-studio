@@ -558,15 +558,19 @@ for (const copy of Object.values(interfaceCopy)) {
   copy.complete = percent => `${percent}% de campos clave · no es calificación`;
 }
 
-let activeRoute = localStorage.getItem("storyqActiveRoute") || "open";
+const storage = createStoryQStorage(() => window.localStorage);
+let activeRoute = storage.read("storyqActiveRoute") || "open";
 if (!routes[activeRoute]) activeRoute = "methods";
 let steps = routes[activeRoute].steps;
-const legacyMethods = JSON.parse(localStorage.getItem("futureArtifactLab") || "{}");
-const routeStore = JSON.parse(localStorage.getItem("storyqRouteStore") || "{}");
+const legacyMethods = storage.readObject("futureArtifactLab");
+const routeStore = storage.readObject("storyqRouteStore");
+for (const id of Object.keys(routes)) {
+  if (routeStore[id] && (typeof routeStore[id] !== "object" || Array.isArray(routeStore[id]))) delete routeStore[id];
+}
 if (!routeStore.methods && Object.keys(legacyMethods).length) routeStore.methods = legacyMethods;
 let state = routeStore[activeRoute] || {};
-let current = Number(localStorage.getItem(`storyqStep:${activeRoute}`) || (activeRoute === "methods" ? localStorage.getItem("futureArtifactStep") : 0) || 0);
-let pilotMode = localStorage.getItem("futureArtifactPilotMode") === "true";
+let current = Number(storage.read(`storyqStep:${activeRoute}`) || (activeRoute === "methods" ? storage.read("futureArtifactStep") : 0) || 0);
+let pilotMode = storage.read("futureArtifactPilotMode") === "true";
 
 const stepGuidance = {
   context: { time: "2 min", mode: "Preparar", effort: "Registro" },
@@ -719,17 +723,29 @@ function logEvent(type, title, detail = "") {
 
 ensureTrace();
 
+function updateSaveStatus(saved, initial = false) {
+  const status = document.querySelector("#saveStatus");
+  status.dataset.state = saved ? "saved" : "error";
+  if (!saved) {
+    status.textContent = "No se pudo guardar en este navegador. Tus respuestas siguen abiertas: descarga una copia antes de salir.";
+  } else if (initial) {
+    status.textContent = "Guardado local disponible. Las respuestas se guardan al escribir en este navegador.";
+  } else {
+    status.textContent = "Guardado en este navegador · " + new Date().toLocaleTimeString("es-MX");
+  }
+  document.querySelector("#storageWarning").textContent = storage.warning;
+}
 function save() {
   ensureTrace();
   state._meta.lastUpdatedAt = new Date().toISOString();
+  state._meta.currentStep = current;
   routeStore[activeRoute] = state;
-  localStorage.setItem("storyqRouteStore", JSON.stringify(routeStore));
-  localStorage.setItem(`storyqStep:${activeRoute}`, String(current));
-  localStorage.setItem("storyqActiveRoute", activeRoute);
-  if (activeRoute === "methods") {
-    localStorage.setItem("futureArtifactLab", JSON.stringify(state));
-    localStorage.setItem("futureArtifactStep", String(current));
-  }
+  const saved = storage.saveRecord(routeStore);
+  // Preferences may fail independently; the answers live in the single record above.
+  storage.write(`storyqStep:${activeRoute}`, String(current));
+  storage.write("storyqActiveRoute", activeRoute);
+  updateSaveStatus(saved);
+  return saved;
 }
 
 function switchRoute(routeId) {
@@ -739,7 +755,7 @@ function switchRoute(routeId) {
   steps = routes[activeRoute].steps;
   state = routeStore[activeRoute] || {};
   routeStore[activeRoute] = state;
-  current = Number(localStorage.getItem(`storyqStep:${activeRoute}`) || 0);
+  current = Number(storage.read(`storyqStep:${activeRoute}`) || 0);
   if (!steps[current]) current = 0;
   coreFields = new Set(routes[activeRoute].core);
   fieldLabels = Object.fromEntries(steps.flatMap((step) => step.fields.map(([key, label]) => [key, label])));
@@ -830,6 +846,8 @@ function renderField([key, label, type, hint]) {
     updateProgress();
   });
   control.addEventListener("change", () => {
+    state[key] = control.value;
+    save();
     const value = String(control.value || "").trim();
     if (!value) return;
     if (!state._fieldTouched[key] && !initialValue) {
@@ -900,6 +918,10 @@ function renderCognitiveForm() {
   const textarea = document.createElement("textarea");
   textarea.value = tags.decisionWhy || "";
   textarea.placeholder = "Que parte decidiste cambiar, conservar o rechazar? Por que?";
+  textarea.addEventListener("input", () => {
+    tags.decisionWhy = textarea.value;
+    save();
+  });
   textarea.addEventListener("change", () => {
     tags.decisionWhy = textarea.value;
     if (textarea.value.trim()) logEvent("decision", "Justificacion de decision", textarea.value.trim().slice(0, 180));
@@ -1090,7 +1112,7 @@ function renderTrace() {
   events.forEach((event) => {
     const item = document.createElement("li");
     const time = new Date(event.at).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" });
-    item.innerHTML = `<strong>${event.title}</strong><span>${time} - ${event.detail || event.type}</span>`;
+    item.innerHTML = `<strong>${escapeReport(event.title)}</strong><span>${time} - ${escapeReport(event.detail || event.type)}</span>`;
     list.append(item);
   });
 }
@@ -1415,22 +1437,23 @@ document.querySelectorAll("[data-route]").forEach((button) => {
 });
 pilotModeToggle.addEventListener("change", () => {
   pilotMode = pilotModeToggle.checked;
-  localStorage.setItem("futureArtifactPilotMode", String(pilotMode));
+  storage.write("futureArtifactPilotMode", String(pilotMode));
   render();
 });
 document.querySelector("#resetBtn").addEventListener("click", () => {
   if (!confirm(`Esto borrará únicamente el recorrido “${routes[activeRoute].title}” guardado en este navegador.`)) return;
   delete routeStore[activeRoute];
-  localStorage.setItem("storyqRouteStore", JSON.stringify(routeStore));
-  localStorage.removeItem(`storyqStep:${activeRoute}`);
+  storage.saveRecord(routeStore);
+  storage.remove(`storyqStep:${activeRoute}`);
   if (activeRoute === "methods") {
-    localStorage.removeItem("futureArtifactLab");
-    localStorage.removeItem("futureArtifactStep");
+    storage.remove("futureArtifactLab");
+    storage.remove("futureArtifactStep");
   }
   Object.keys(state).forEach((key) => delete state[key]);
   current = 0;
   pilotMode = false;
   ensureTrace();
+  save();
   render();
 });
 
@@ -1442,3 +1465,74 @@ function printLearningReport() {
   window.print();
 }
 window.addEventListener("beforeprint", () => { renderReadableReport(); document.querySelector("#evidencePanel").hidden = false; });
+
+// A file backup is independent of this device, browser and its storage policy.
+function downloadStoryQ(content, filename, mime) {
+  const url = URL.createObjectURL(new Blob([content], { type: mime }));
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
+}
+document.querySelector("#saveNowBtn").addEventListener("click", save);
+document.querySelector("#backupBtn").addEventListener("click", () => {
+  save();
+  downloadStoryQ(buildEvidence(), `storyq-${activeRoute}-${new Date().toISOString().slice(0,10)}.json`, "application/json");
+  document.querySelector("#backupStatus").textContent = "Se solicitó la descarga. Comprueba que el archivo esté en Descargas antes de cerrar.";
+});
+document.querySelector("#downloadReportBtn").addEventListener("click", () => {
+  downloadStoryQ(buildReadableReportText(), `storyq-reporte-${activeRoute}.txt`, "text/plain;charset=utf-8");
+});
+document.querySelector("#restoreFile").addEventListener("change", async event => {
+  const file = event.target.files[0];
+  if (!file) return;
+  const message = document.querySelector("#backupStatus");
+  try {
+    if (file.size > 10 * 1024 * 1024) throw new Error("El archivo supera el límite de 10 MB.");
+    const imported = JSON.parse(await file.text());
+    if (!Object.hasOwn(routes, imported.route) || !imported.evidence || typeof imported.evidence !== "object" || Array.isArray(imported.evidence)) throw new Error("Selecciona una copia JSON descargada desde StoryQIA.");
+    const clean = {};
+    // Restore only known form fields. Imported HTML is never executed.
+    for (const [key] of routes[imported.route].steps.flatMap(step => step.fields)) {
+      if (typeof imported.evidence[key] === "string") clean[key] = imported.evidence[key];
+    }
+    const tags = imported.evidence._cognitiveTags;
+    clean._cognitiveTags = {};
+    for (const step of routes[imported.route].steps) {
+      if (!tags || !Object.hasOwn(tags, step.id) || !tags[step.id]) continue;
+      clean._cognitiveTags[step.id] = {};
+      for (const key of [...cognitiveControls.map(item => item[0]), "decisionWhy"]) {
+        if (typeof tags[step.id][key] === "string") clean._cognitiveTags[step.id][key] = tags[step.id][key];
+      }
+    }
+    if (Array.isArray(imported.evidence._timeline)) clean._timeline = imported.evidence._timeline.filter(item => item && typeof item === "object").map(item => Object.fromEntries(["at", "step", "type", "title", "detail"].filter(key => typeof item[key] === "string").map(key => [key, item[key]])));
+    clean._meta = {};
+    for (const key of ["startedAt", "lastUpdatedAt", "aiCounterpoints", "humanModifications", "decisions"]) {
+      const value = imported.evidence._meta?.[key];
+      if (typeof value === "string" || typeof value === "number") clean._meta[key] = value;
+    }
+    if (Object.keys(routeStore[imported.route] || {}).some(key => !key.startsWith("_") && routeStore[imported.route][key]) && !confirm("Esta copia reemplazará las respuestas de este recorrido en el navegador. Descarga primero una copia del trabajo actual si quieres conservarlo. ¿Continuar?")) return;
+    save();
+    activeRoute = imported.route;
+    steps = routes[activeRoute].steps;
+    state = clean;
+    routeStore[activeRoute] = state;
+    current = 0;
+    coreFields = new Set(routes[activeRoute].core);
+    fieldLabels = Object.fromEntries(steps.flatMap(step => step.fields.map(([key, label]) => [key, label])));
+    ensureTrace();
+    const saved = save();
+    render();
+    message.textContent = saved ? "Copia recuperada y guardada en este navegador." : "Copia abierta. El navegador no permite guardarla; conserva tu archivo de respaldo.";
+  } catch (error) { message.textContent = "No se pudo recuperar la copia. " + (error instanceof SyntaxError ? "El archivo no contiene datos JSON válidos." : error.message); }
+  finally { event.target.value = ""; }
+});
+document.querySelector("#stepForm").addEventListener("submit", event => event.preventDefault());
+window.addEventListener("pagehide", save);
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") save(); });
+const storageProbe = storage.write("storyqStorageProbe", "ok");
+if (storageProbe) storage.remove("storyqStorageProbe");
+updateSaveStatus(storageProbe, true);

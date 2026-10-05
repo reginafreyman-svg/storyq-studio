@@ -4,9 +4,21 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>StoryQ Studio — Trazabilidad creativa</title>
-    <link rel="stylesheet" href="./styles.css?v=reflection3">
+    <link rel="stylesheet" href="./styles.css?v=save1">
   </head>
   <body>
+    <section class="save-panel" aria-label="Guardar y recuperar mi trabajo">
+      <strong id="saveStatus" role="status" aria-live="polite">Comprobando guardado…</strong>
+      <p>Las respuestas se guardan en este navegador y dispositivo. No se envían automáticamente a tu docente. Para cambiar de equipo o entregar, descarga tu copia o tu reporte. En navegación privada pueden borrarse al cerrar.</p>
+      <p id="storageWarning" role="status"></p>
+      <div class="save-actions">
+        <button type="button" id="saveNowBtn">Guardar ahora</button>
+        <button type="button" id="backupBtn">Descargar copia para continuar</button>
+        <button type="button" id="downloadReportBtn">Descargar reporte para entregar</button>
+        <label class="restore-label">Recuperar copia JSON <input id="restoreFile" type="file" accept=".json,application/json"></label>
+      </div>
+      <p id="backupStatus" role="status" aria-live="polite"></p>
+    </section>
     <div class="app-shell">
       <aside class="sidebar" aria-label="Progreso del laboratorio">
         <div class="brand">
@@ -191,7 +203,8 @@
       </main>
     </div>
 
-    <script src="./reflection.js?v=reflection3"></script>
-    <script src="./app.js?v=reflection3"></script>
+    <script src="./storage.js?v=save1"></script>
+    <script src="./reflection.js?v=save1"></script>
+    <script src="./app.js?v=save1"></script>
   </body>
 </html>
