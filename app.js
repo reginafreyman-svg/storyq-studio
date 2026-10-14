@@ -1031,6 +1031,7 @@ function renderPreview() {
   document.querySelector("#summaryDilemma").textContent = compact(preview.summaries[0]);
   document.querySelector("#summaryHuman").textContent = compact(preview.summaries[1]);
   document.querySelector("#summaryIssue").textContent = compact(preview.summaries[2]);
+  document.querySelector("#cognitiveLabels").innerHTML = StoryQCognitiveLabel.render(state, steps);
   renderJourney();
   renderCoreCompletion();
   renderTrace();
@@ -1099,6 +1100,8 @@ function renderTrace() {
   document.querySelector("#humanPercent").textContent = String(stats.decisionTags);
   document.querySelector("#aiPercent").textContent = String(state._meta.aiCounterpoints || 0);
   document.querySelector("#iterationCount").textContent = String(stats.iterations);
+  document.querySelector("#iterationMetricLabel").textContent = "Eventos de registro";
+  document.querySelector("#aiMetricLabel").textContent = "Contrapuntos de ejemplo";
 
   const list = document.querySelector("#timelineList");
   list.innerHTML = "";
@@ -1206,6 +1209,7 @@ function buildEvidence() {
   const stats = traceStats();
   const coreStats = coreCompletionStats();
   const payload = {
+    cognitiveLabels: StoryQCognitiveLabel.build(state, steps),
     title: `StoryQ Studio — ${routes[activeRoute].short}`,
     route: activeRoute,
     schemaVersion: "3.0-reflection",
@@ -1366,7 +1370,10 @@ function renderReadableReport() {
   heading.textContent = "Evidencias de agencia y aprendizaje";
   const note = document.createElement("p");
   note.textContent = "Reconocer dudas no resta puntos ni bloquea la entrega. No evaluado no significa falta de capacidad. La reflexión y la comprensión se registran por separado. La etiqueta identifica el tipo de revisión declarado.";
-  report.append(heading, note);
+  const labels = document.createElement("div");
+  labels.className = "report-labels";
+  labels.innerHTML = StoryQCognitiveLabel.render(state, steps);
+  report.append(labels, heading, note);
   for (const section of reportSections()) {
     const element = document.createElement("section");
     element.innerHTML = `<h4>${escapeReport(section.title)}</h4><dl>${section.items.map(([label, value]) => `<dt>${escapeReport(label)}</dt><dd>${escapeReport(value)}</dd>`).join("")}</dl>`;
