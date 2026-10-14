@@ -10,6 +10,19 @@
     'Anticipé consecuencias y adapté mi propuesta ante un cambio de condiciones.'
   ];
   const levels = ['Pendiente', 'No observé esta capacidad', '1 · Reproduje una respuesta', '2 · La ejercí con guía', '3 · Expliqué mis razones', '4 · Adapté y comprobé', '5 · Transferí y defendí con autonomía', 'No aplica'];
+  const levelGuide = [
+    ['1 · Reproduje una respuesta','1 ★ · Repetí sin poder explicar','Tomé una respuesta o procedimiento y aún no puedo explicar sus razones. Ejemplo: copié la propuesta sin revisar por qué funcionaría.'],
+    ['2 · La ejercí con guía','2 ★ · Lo hice con guía','Necesité preguntas, pistas o pasos para realizarlo. Ejemplo: revisé la propuesta siguiendo una lista que me dieron.'],
+    ['3 · Expliqué mis razones','3 ★ · Lo expliqué con mis razones','Puedo explicar qué hice y por qué en esta tarea. Ejemplo: justifiqué qué sugerencia acepté o rechacé.'],
+    ['4 · Adapté y comprobé','4 ★ · Lo adapté y revisé','Modifiqué lo obtenido para mi contexto y comprobé el ajuste con un criterio. Ejemplo: cambié una actividad y revisé si permite observar el aprendizaje.'],
+    ['5 · Transferí y defendí con autonomía','5 ★ · Lo apliqué a un caso nuevo','Usé lo aprendido ante una condición nueva y defendí mi decisión sin pedir una nueva solución a la IA. Ejemplo: adapté una clase de 50 a 30 minutos y expliqué mis prioridades.']
+  ];
+  function levelCaption(value) {
+    return levelGuide.find(row=>row[0]===value)?.[1] || (value==='Pendiente'?'Sin elegir':value);
+  }
+  function guideMarkup() {
+    return '<details class="star-guide"><summary>¿Qué significa cada estrella?</summary><p>Valora lo que hiciste en este momento, no la calidad del producto ni cuánta IA usaste. Elige el nivel más alto que puedas sostener con lo ya escrito.</p><ol>'+levelGuide.map(row=>'<li><b>'+row[1]+'</b><p>'+row[2]+'</p></li>').join('')+'</ol><p><b>No observé esta capacidad:</b> no identifico que la haya ejercido aquí. <b>No aplica:</b> este momento no la requería. Ninguna de estas opciones equivale a una estrella.</p><p>Las ayudas de accesibilidad no reducen el nivel. Puedes usar IA como apoyo; para el nivel 5 debes resolver el cambio de condiciones con tu propio criterio.</p></details>';
+  }
   const relations = ['Pendiente', 'Descarga cognitiva', 'Apoyo cognitivo', 'Contraste crítico', 'Apropiación intelectual', 'Soberanía cognitiva'];
   function ratings(tag) {
     return values.map((key, i) => {
@@ -27,7 +40,7 @@
     return `<span class="rating-stars" aria-label="Nivel ${n} de 5">${'★'.repeat(n)}${'☆'.repeat(5-n)}</span>`;
   }
   function ratingMarkup(tag) {
-    return ratings(tag).map(r => `<li><span title="${escape(r.criterion)}">${r.name}</span><strong>${stars(r)}${escape(r.supported ? r.level : 'Sin estrellas declaradas')}</strong></li>`).join('');
+    return ratings(tag).map(r => `<li><span title="${escape(r.criterion)}">${r.name}</span><strong>${stars(r)}${escape(r.supported ? levelCaption(r.level) : 'Sin estrellas declaradas')}</strong></li>`).join('');
   }
   const escape = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const present = value => value && !['No registrado', 'Sin decision critica'].includes(value);
@@ -66,7 +79,7 @@
       <div class="label-content"><header><span class="label-kicker">Etiqueta de valor cognitivo</span><h3>STORYQ</h3><p>${escape(tag.moment)}</p></header>
       <dl class="label-identity">${detail('Actividad', tag.activity)}${detail('Participante',tag.participant)}${detail('Fecha de la actividad',tag.date)}${detail('Función de la IA',tag.aiFunction)}</dl>
       <section class="label-box"><h4>Intervención declarada</h4><dl class="label-interventions">${detail('Inteligencia artificial',tag.aiIntervention)}${detail('Intervención humana',tag.humanIntervention)}</dl><p class="label-note">Las intervenciones son independientes; no representan porcentajes de autoría.</p></section>
-      <section class="label-box"><h4>Valor cognitivo</h4><ul class="label-values">${ratingMarkup(tag)}</ul><p class="label-note">Estrellas: autovaloración humana. 1 reproducción · 2 guía · 3 explicación · 4 adaptación · 5 transferencia autónoma.</p></section>
+      <section class="label-box"><h4>Valor cognitivo</h4><ul class="label-values">${ratingMarkup(tag)}</ul><p class="label-note">Estrellas: autovaloración humana. 1 repetir · 2 seguir una guía · 3 explicar · 4 adaptar y revisar · 5 aplicar a un caso nuevo.</p></section>
       <section class="label-box"><h4>Relación con la IA</h4><strong>${escape(relationReading(tag).name)}</strong></section>
       <section class="label-box"><h4>Decisión clave y justificación</h4><strong>${escape(tag.decisionMoment || 'Sin decisión registrada')}</strong><p>${escape(tag.decisionWhy || 'Justificación pendiente')}</p></section>
 </div></article>`).join('');
@@ -75,7 +88,7 @@
     const fields=[['Función de IA',tag.aiFunction],['Intervención IA',tag.aiIntervention],['Intervención humana',tag.humanIntervention],['Decisión',tag.decisionMoment],['Justificación',tag.decisionWhy],['Relación con IA',tag.relation],['Evidencia de relación',tag.relationEvidence]];
     return fields.map(([name,value])=>name+': '+(value || 'Sin registro')).join('\n')+'\n'+ratings(tag).map(r=>r.name+': '+(r.supported?r.level:'Pendiente de valoración o evidencia')+'\nCriterio: '+r.criterion+'\nEvidencia: '+(r.evidence || 'Sin registro')).join('\n');
   }
-  const api = {build, render, ratings, values, names, criteria, levels, relations, describe};
+  const api = {build, render, ratings, values, names, criteria, levels, relations, describe, levelGuide, levelCaption, guideMarkup};
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.StoryQCognitiveLabel = api;
 })(typeof window !== 'undefined' ? window : globalThis);
