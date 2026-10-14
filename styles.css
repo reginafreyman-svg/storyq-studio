@@ -1286,3 +1286,11 @@ select {
 
 .rating-stars { display: block; font-size: 18px; color: #b9842d; letter-spacing: 2px; }
 @media print { .result-label { break-inside: auto; } .label-content .label-box { break-inside: avoid; } }
+
+.automatic-diagnosis { border: 2px solid #d7a74a; border-radius: 16px; padding: 20px; background: #fffaf0; color: #102941; margin: 20px 0; }
+.automatic-diagnosis h3 { font-family: Georgia,serif; }
+.diagnosis-row { border-top: 1px solid #d7a74a; padding: 16px 0; }
+.diagnosis-row strong { color: #2d6f61; }
+.diagnosis-row p,.automatic-diagnosis p { font-size: 14px; line-height: 1.6; }
+.diagnosis-row blockquote { margin: 12px 0; border-left: 3px solid #d7a74a; padding: 8px 12px; background: #f7f2e8; font-size: 13px; white-space: pre-wrap; overflow-wrap: anywhere; }
+@media print { .automatic-diagnosis { break-after: page; } .diagnosis-row { break-inside: avoid; } }

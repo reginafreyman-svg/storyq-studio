@@ -1057,7 +1057,7 @@ function renderPreview() {
   document.querySelector("#summaryDilemma").textContent = compact(preview.summaries[0]);
   document.querySelector("#summaryHuman").textContent = compact(preview.summaries[1]);
   document.querySelector("#summaryIssue").textContent = compact(preview.summaries[2]);
-  document.querySelector("#cognitiveLabels").innerHTML = StoryQCognitiveLabel.render(state, steps);
+  document.querySelector("#cognitiveLabels").innerHTML = StoryQCognitiveDiagnosis.render(state, steps) + StoryQCognitiveLabel.render(state, steps);
   renderJourney();
   renderCoreCompletion();
   renderTrace();
@@ -1236,6 +1236,7 @@ function buildEvidence() {
   const coreStats = coreCompletionStats();
   const payload = {
     cognitiveLabels: StoryQCognitiveLabel.build(state, steps),
+    cognitiveDiagnosis: StoryQCognitiveDiagnosis.analyze(state, steps),
     title: `StoryQ Studio — ${routes[activeRoute].short}`,
     route: activeRoute,
     schemaVersion: "3.0-reflection",
@@ -1382,6 +1383,7 @@ function buildReadableReportText() {
   ensureTrace();
   return ["StoryQIA Studio — " + routes[activeRoute].short,
     "Evidencias de agencia y aprendizaje. Las dudas no restan puntos. Sin registro no significa falta de capacidad. La etiqueta identifica el tipo de revisión declarado.",
+    "DIAGNÓSTICO PEDAGÓGICO DEL PROCESO\n" + StoryQCognitiveDiagnosis.analyze(state, steps).rows.map(r => r.name + ": " + r.status + "\n" + r.interpretation + "\n" + r.evidence.map(e => e.field + ": " + e.text).join("\n") + "\nPróximo paso: " + r.next).join("\n\n"),
     ...reportSections().map(section => section.title + "\n" + section.items.map(([label, value]) => label + ": " + value).join("\n")),
     "ETIQUETAS POR MOMENTO\n" + Object.entries(state._cognitiveTags || {}).map(([id, tag]) => (steps.find(step => step.id === id)?.title || id) + ": " + StoryQCognitiveLabel.describe(tag)).join("\n"),
     "BITÁCORA\n" + state._timeline.map(event => event.title + ": " + (event.detail || event.type)).join("\n")].join("\n\n");
@@ -1398,7 +1400,7 @@ function renderReadableReport() {
   note.textContent = "Reconocer dudas no resta puntos ni bloquea la entrega. No evaluado no significa falta de capacidad. La reflexión y la comprensión se registran por separado. La etiqueta identifica el tipo de revisión declarado.";
   const labels = document.createElement("div");
   labels.className = "report-labels";
-  labels.innerHTML = StoryQCognitiveLabel.render(state, steps);
+  labels.innerHTML = StoryQCognitiveDiagnosis.render(state, steps) + StoryQCognitiveLabel.render(state, steps);
   report.append(labels, heading, note);
   for (const section of reportSections()) {
     const element = document.createElement("section");

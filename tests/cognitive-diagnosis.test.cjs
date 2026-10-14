@@ -1,0 +1,11 @@
+const assert=require('node:assert/strict');
+const api=require('../cognitive-diagnosis.js');
+const d=api.analyze({verificationMethod:'Comparé las propuestas y corregí una imagen.',decisionReason:'Transformé textos y ajusté el problema de secuencia.',pitchLearning:'Aprendí qué delegué y conservé.',pitchNext:'Ensayaré para probar los tiempos.',reviewResponse:'Pendiente. Todavía no he realizado una demostración.',pitchSelf:'Información privada'});
+assert.equal(d.rows.length,6);
+assert.equal(d.rows[3].status,'Recuperación autónoma no demostrada');
+assert(d.rows.every(r=>r.status&&!r.status.includes('Pendiente')));
+assert(!JSON.stringify(d).includes('Información privada'));
+assert(d.rows[0].evidence[0].text.includes('Comparé'));
+assert.equal(api.analyze({}).rows.length,6);
+assert(api.render({verificationMethod:'Comparé <script>datos</script>'},[]).includes('&lt;script&gt;'));
+console.log('PASS: all six dimensions, concrete references, no fabricated demonstration, private fields excluded, safe text');
