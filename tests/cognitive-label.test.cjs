@@ -1,9 +1,9 @@
 const assert=require('node:assert/strict');
 const api=require('../cognitive-label.js');
 const key=api.values[0];
-let tag={ratings:{[key]:{level:api.levels[4],evidence:''}}};
+let tag={ratings:{[key]:{level:'3 · Expliqué mis razones',evidence:''}}};
 assert.equal(api.ratings(tag)[0].supported,true);
-assert.equal(api.ratings(tag)[0].level,'3 · Expliqué mis razones');
+assert.equal(api.ratings(tag)[0].level,'3');
 tag.ratings[key].evidence='Comparé las fuentes y rechacé una afirmación.';
 assert.equal(api.ratings(tag)[0].supported,true);
 const state={activityName:'Prueba',_cognitiveTags:{test:{...tag,aiFunction:'Ayudante',relation:'Soberanía cognitiva',relationEvidence:'Decidí con criterio'}}};

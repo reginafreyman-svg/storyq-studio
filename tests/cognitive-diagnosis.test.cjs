@@ -2,7 +2,7 @@ const assert=require('node:assert/strict');
 const api=require('../cognitive-diagnosis.js');
 const d=api.analyze({verificationMethod:'Comparé las propuestas y corregí una imagen.',decisionReason:'Transformé textos y ajusté el problema de secuencia.',pitchLearning:'Aprendí qué delegué y conservé.',pitchNext:'Ensayaré para probar los tiempos.',reviewResponse:'Pendiente. Todavía no he realizado una demostración.',pitchSelf:'Información privada'});
 assert.equal(d.rows.length,6);
-assert.equal(d.rows[3].status,'Recuperación autónoma no demostrada');
+assert.equal(d.rows[3].status,'Memoria activa');assert.equal(d.rows[3].found,false);
 assert(d.rows.every(r=>r.status&&!r.status.includes('Pendiente')));
 assert(!JSON.stringify(d).includes('Información privada'));
 assert(d.rows[0].evidence[0].text.includes('Comparé'));

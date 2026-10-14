@@ -941,7 +941,7 @@ function renderCognitiveForm() {
     const span = document.createElement("span"); span.textContent = title; label.append(span);
     const select = document.createElement("select");
     options.forEach(text => { const option = document.createElement("option"); option.value=text; option.textContent=options===api.levels ? api.levelCaption(text) : text; select.append(option); });
-    select.value=value || options[0]; select.addEventListener("change",()=>{change(select.value);save();renderPreview();});label.append(select);return label;
+    select.value=options===api.levels ? api.normalizeLevel(value) : (options.includes(value) ? value : options[0]); select.addEventListener("change",()=>{change(select.value);save();renderPreview();});label.append(select);return label;
   }
   const guide=document.createElement("div");guide.innerHTML=api.guideMarkup();rubric.append(guide);
   const choices = document.createElement("div"); choices.className = "star-selectors";
@@ -1546,7 +1546,7 @@ document.querySelector("#restoreFile").addEventListener("change", async event =>
         const rating = tags[step.id].ratings?.[key];
         if (!rating || typeof rating !== "object") continue;
         clean._cognitiveTags[step.id].ratings[key] = {
-          level: StoryQCognitiveLabel.levels.includes(rating.level) ? rating.level : "Pendiente",
+          level: StoryQCognitiveLabel.normalizeLevel(rating.level),
           evidence: typeof rating.evidence === "string" ? rating.evidence : ""
         };
       }

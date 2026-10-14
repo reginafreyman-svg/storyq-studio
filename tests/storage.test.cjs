@@ -32,7 +32,7 @@ for(const name of ['storage.js','reflection.js','app.js'])vm.runInContext(fs.rea
  const stored=JSON.parse(map.get('storyqRouteStore'));
  assert.equal(stored.open.learningGoal,'Conservar respuesta');
  assert.equal(stored.open.pitchOpen,'Todavía tengo dudas');
- assert.equal(stored.open._cognitiveTags.context.ratings['Pensamiento critico'].level,'3 · Expliqué mis razones');
+ assert.equal(stored.open._cognitiveTags.context.ratings['Pensamiento critico'].level,'3');
  assert.equal(stored.open._cognitiveTags.context.relationEvidence,'Verifiqué una fuente');
  assert.match(nodes.get('#backupStatus').textContent,/recuperada y guardada/);
  assert.equal(target.value,'');

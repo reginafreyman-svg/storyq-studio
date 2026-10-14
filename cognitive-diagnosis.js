@@ -23,20 +23,26 @@
       const hits=sources.filter(s=>d.action.test(normalize(s.text)));
       const missingDemo=i===3 && (!String(state.reviewResponse||'').trim() || /pendiente|no he realizado|no he probado|todavia no|aun no/.test(normalize(state.reviewResponse)));
       const evidence=missingDemo?sources.slice(0,1):(hits.length?hits:sources).slice(0,2);
-      const status=missingDemo?'Recuperación autónoma no demostrada':hits.length?'Indicios documentados':sources.length?'Descripción sin evidencia específica':'Sin evidencia en el registro';
+      const status=d.name;
+      const found=Boolean(hits.length) && !missingDemo;
       const interpretation=missingDemo?'El registro no contiene una demostración realizada de recuperación o aplicación sin una nueva consulta. Esto no implica falta de capacidad.':hits.length?`Encontramos acciones declaradas relacionadas con ${d.name.toLowerCase()}. Las referencias permiten revisar esa interpretación; no certifican el desempeño.`:sources.length?`Hay texto relacionado con este rubro, pero no una acción suficientemente específica para sostener su ejercicio.`:`El registro no documenta este rubro. La valoración del registro es insuficiencia de evidencia, no una calificación de la persona.`;
-      return {name:d.name,status,interpretation,evidence,next:d.next};
+      const key=['Pensamiento critico','Creatividad','Metacognicion','Memoria activa','Resolucion de problemas','Vision prospectiva'][i];
+      const stars=Object.entries(state._cognitiveTags||{}).map(([id,tag])=>({moment:steps.find(step=>step.id===id)?.title||id,level:String(tag.ratings?.[key]?.level||'').match(/^([1-5])(?:$| ·)/)?.[1]||''})).filter(r=>r.level);
+      return {name:d.name,status,found,stars,interpretation,evidence,next:d.next};
     });
-    const supported=rows.filter(r=>r.status==='Indicios documentados');
-    const limits=rows.filter(r=>r.status!=='Indicios documentados');
+    const supported=rows.filter(r=>r.found);
+    const limits=rows.filter(r=>!r.found);
     return {method:'Lectura automática por reglas explícitas del registro; no utiliza un modelo de IA ni observa acciones fuera de la app.',rows,
-      summary:supported.length?`El registro contiene indicios declarados en ${supported.length} de los seis rubros: ${supported.map(r=>r.name).join(', ')}.`:'El registro todavía no aporta acciones específicas que sostengan los seis rubros.',
+      summary:'Valor cognitivo y relación con la IA según la etiqueta y la taxonomía STORYQIA. Las estrellas conservan tu valoración; las referencias proceden de lo que ya escribiste.',
       next:limits.length?`Prioriza: ${limits[0].next}`:'Pon a prueba una decisión en un caso nuevo y compara el resultado con lo que registraste.',
       limits:'Esta lectura analiza lo escrito. No distingue por sí sola texto propio de texto generado por IA ni demuestra comprensión. Las estrellas son autovaloración humana y se conservan por separado.'};
   }
   function render(state,steps) {
     const d=analyze(state,steps);
-    return `<section class="automatic-diagnosis"><p class="eyebrow">Diagnóstico final del proceso</p><h3>Tu recorrido en seis rubros</h3><p>${escape(d.summary)}</p>${d.rows.map(r=>`<section class="diagnosis-row"><h4>${r.name}</h4><strong>${r.status}</strong><p>${escape(r.next)}</p><details><summary>Ver fundamento</summary><p>${escape(r.interpretation)}</p>${r.evidence.map(s=>`<blockquote><b>${escape(s.field)}</b><br>${escape(s.text)}</blockquote>`).join('')}</details></section>`).join('')}<div class="diagnosis-review"><b>Revisión declarada:</b> ${escape(state.reviewSource||'No evaluado')}<br><b>Reflexión:</b> ${escape(state.reflectionStatus||'No evaluado')}<br><b>Comprensión:</b> ${escape(state.understandingStatus||'No evaluado')}</div><p><b>Próximo paso:</b> ${escape(d.next)}</p><details><summary>Cómo se produjo esta lectura</summary><p>${escape(d.method)}</p><p>${escape(d.limits)}</p></details></section>`;
+    const labelApi=root.StoryQCognitiveLabel || (typeof require==='function'?require('./cognitive-label.js'):null);
+    const relationships=Object.entries(state._cognitiveTags||{}).map(([id,tag])=>({moment:steps.find(step=>step.id===id)?.title||id,name:labelApi?.relationReading(tag).name,why:tag.decisionWhy||''}));
+    return `<section class="automatic-diagnosis"><p class="eyebrow">Etiqueta cognitiva STORYQ</p><h3>Valor cognitivo</h3><p>${escape(d.summary)}</p>${d.rows.map(r=>`<section class="diagnosis-row"><h4>${r.name}</h4><p>${escape(r.interpretation)}</p><details><summary>Registro y estrellas</summary>${r.stars.map(v=>`<p>${escape(v.moment)}: ${'★'.repeat(Number(v.level))}${'☆'.repeat(5-Number(v.level))}</p>`).join('')}${r.evidence.map(s=>`<blockquote><b>${escape(s.field)}</b><br>${escape(s.text)}</blockquote>`).join('')}</details></section>`).join('')}<h3>Taxonomía del pensamiento frente a la IA</h3>${relationships.map(r=>`<p><b>${escape(r.moment)}:</b> ${escape(r.name || '—')}</p>`).join('')}<p><b>Decisión clave y justificación:</b> ${escape(state.decisionReason||relationships.filter(r=>r.why).at(-1)?.why||'—')}</p><details><summary>Referencia del análisis</summary><p>${escape(d.method)}</p><p>${escape(d.limits)}</p></details></section>`;
+
   }
   const api={analyze,render};
   if(typeof module!=='undefined'&&module.exports)module.exports=api;

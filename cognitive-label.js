@@ -9,48 +9,46 @@
     'Identifiqué un problema, comparé alternativas y comprobé la solución elegida.',
     'Anticipé consecuencias y adapté mi propuesta ante un cambio de condiciones.'
   ];
-  const levels = ['Pendiente', 'No observé esta capacidad', '1 · Reproduje una respuesta', '2 · La ejercí con guía', '3 · Expliqué mis razones', '4 · Adapté y comprobé', '5 · Transferí y defendí con autonomía', 'No aplica'];
-  const levelGuide = [
-    ['1 · Reproduje una respuesta','1 ★ · Repetí sin poder explicar','Tomé una respuesta o procedimiento y aún no puedo explicar sus razones. Ejemplo: copié la propuesta sin revisar por qué funcionaría.'],
-    ['2 · La ejercí con guía','2 ★ · Lo hice con guía','Necesité preguntas, pistas o pasos para realizarlo. Ejemplo: revisé la propuesta siguiendo una lista que me dieron.'],
-    ['3 · Expliqué mis razones','3 ★ · Lo expliqué con mis razones','Puedo explicar qué hice y por qué en esta tarea. Ejemplo: justifiqué qué sugerencia acepté o rechacé.'],
-    ['4 · Adapté y comprobé','4 ★ · Lo adapté y revisé','Modifiqué lo obtenido para mi contexto y comprobé el ajuste con un criterio. Ejemplo: cambié una actividad y revisé si permite observar el aprendizaje.'],
-    ['5 · Transferí y defendí con autonomía','5 ★ · Lo apliqué a un caso nuevo','Usé lo aprendido ante una condición nueva y defendí mi decisión sin pedir una nueva solución a la IA. Ejemplo: adapté una clase de 50 a 30 minutos y expliqué mis prioridades.']
+  const levels = ['', '1', '2', '3', '4', '5'];
+  const taxonomy = [
+    {name:'Descarga cognitiva',description:'Se delega el pensamiento. Uso acrítico y automático.',relationship:'Dependencia pasiva',risk:'Pérdida de autoría y comprensión.'},
+    {name:'Apoyo cognitivo',description:'La IA asiste y amplía capacidades. Uso funcional y estratégico.',relationship:'Dependencia activa',risk:'Dependencia instrumental.'},
+    {name:'Contraste crítico',description:'Se cuestiona, compara y problematiza. Uso reflexivo y deliberativo.',relationship:'Relación dialógica',risk:'Confirmación sesgada.'},
+    {name:'Apropiación intelectual',description:'Se integra, reinterpreta y transforma. Uso creativo y situado.',relationship:'Relación transformadora',risk:'Ilusión de originalidad.'},
+    {name:'Soberanía cognitiva',description:'Se decide con criterio y responsabilidad. Uso ético, autoral y estratégico.',relationship:'Relación autónoma',risk:'Sobreconfianza.'}
   ];
-  function levelCaption(value) {
-    return levelGuide.find(row=>row[0]===value)?.[1] || (value==='Pendiente'?'Sin elegir':value);
-  }
+  const relations = ['', ...taxonomy.map(row=>row.name)];
+  function normalizeLevel(value) { const m=String(value||'').match(/^([1-5])(?:$| ·)/);return m?m[1]:''; }
+  function levelCaption(value) { const n=normalizeLevel(value);return n?'★'.repeat(Number(n))+'☆'.repeat(5-Number(n)): '—'; }
   function guideMarkup() {
-    return '<details class="star-guide"><summary>¿Qué significa cada estrella?</summary><p>Valora lo que hiciste en este momento, no la calidad del producto ni cuánta IA usaste. Elige el nivel más alto que puedas sostener con lo ya escrito.</p><ol>'+levelGuide.map(row=>'<li><b>'+row[1]+'</b><p>'+row[2]+'</p></li>').join('')+'</ol><p><b>No observé esta capacidad:</b> no identifico que la haya ejercido aquí. <b>No aplica:</b> este momento no la requería. Ninguna de estas opciones equivale a una estrella.</p><p>Las ayudas de accesibilidad no reducen el nivel. Puedes usar IA como apoyo; para el nivel 5 debes resolver el cambio de condiciones con tu propio criterio.</p></details>';
+    return '<details class="star-guide"><summary>Etiqueta y taxonomía STORYQIA</summary><p>Las estrellas registran tu valoración de cada capacidad, de 1 a 5. La app no añade nombres ni una rúbrica distinta a tu etiqueta. La relación con la IA se elige por separado usando esta taxonomía.</p>'+taxonomy.map((row,i)=>'<p><b>'+ (i+1)+' · '+row.name+'</b><br>'+row.description+'<br>'+row.relationship+'<br>Riesgo: '+row.risk+'</p>').join('')+'</details>';
   }
-  const relations = ['Pendiente', 'Descarga cognitiva', 'Apoyo cognitivo', 'Contraste crítico', 'Apropiación intelectual', 'Soberanía cognitiva'];
   function ratings(tag) {
     return values.map((key, i) => {
       const r = tag.ratings?.[key] || {};
-      const level = levels.includes(r.level) ? r.level : 'Pendiente';
+      const level = normalizeLevel(r.level);
       const evidence = typeof r.evidence === 'string' ? r.evidence.trim() : '';
       return {key, name:names[i], criterion:criteria[i], level, evidence,
-        supported: level !== 'Pendiente'};
+        supported: Boolean(level)};
     });
   }
   function stars(r) {
-    const match = r.level.match(/^([1-5]) ·/);
+    const match = r.level.match(/^([1-5])$/);
     if (!r.supported || !match) return '';
     const n=Number(match[1]);
     return `<span class="rating-stars" aria-label="Nivel ${n} de 5">${'★'.repeat(n)}${'☆'.repeat(5-n)}</span>`;
   }
   function ratingMarkup(tag) {
-    return ratings(tag).map(r => `<li><span title="${escape(r.criterion)}">${r.name}</span><strong>${stars(r)}${escape(r.supported ? levelCaption(r.level) : 'Sin estrellas declaradas')}</strong></li>`).join('');
+    return ratings(tag).map(r => `<li><span title="${escape(r.criterion)}">${r.name}</span><strong>${stars(r)}${escape(r.supported ? levelCaption(r.level) : '—')}</strong></li>`).join('');
   }
   const escape = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const present = value => value && !['No registrado', 'Sin decision critica'].includes(value);
   function relationReading(tag) {
-    if(relations.includes(tag.relation) && tag.relation !== 'Pendiente') return {name:tag.relation,reason:tag.relationEvidence || tag.decisionWhy || ''};
+    if(relations.includes(tag.relation) && tag.relation) return {name:tag.relation,reason:tag.relationEvidence || tag.decisionWhy || ''};
     const why=String(tag.decisionWhy || '').trim();
-    if(tag.aiFunction === 'Sin IA') return {name:'Trabajo humano sin IA en este momento',reason:why || 'Se declaró ausencia de IA. El registro no justifica todavía la decisión.'};
-    if(why && /Contraste|Oponente/.test(tag.aiFunction||'')) return {name:'Contraste crítico declarado',reason:why};
-    if(tag.aiFunction === 'Ayudante') return {name:'Apoyo cognitivo declarado',reason:why || 'Se declaró ayuda de IA, pero no se documenta qué razonamiento conservó la persona.'};
-    return {name:'Relación no documentada',reason:'No hay datos suficientes para identificar la relación en este momento. Esto describe el registro, no la capacidad de la persona.'};
+    if(why && /Contraste|Oponente/.test(tag.aiFunction||'')) return {name:'Contraste crítico',reason:why};
+    if(tag.aiFunction === 'Ayudante') return {name:'Apoyo cognitivo',reason:why};
+    return {name:'—',reason:why};
   }
   function build(state, steps) {
     return steps.filter(step => {
@@ -79,7 +77,7 @@
       <div class="label-content"><header><span class="label-kicker">Etiqueta de valor cognitivo</span><h3>STORYQ</h3><p>${escape(tag.moment)}</p></header>
       <dl class="label-identity">${detail('Actividad', tag.activity)}${detail('Participante',tag.participant)}${detail('Fecha de la actividad',tag.date)}${detail('Función de la IA',tag.aiFunction)}</dl>
       <section class="label-box"><h4>Intervención declarada</h4><dl class="label-interventions">${detail('Inteligencia artificial',tag.aiIntervention)}${detail('Intervención humana',tag.humanIntervention)}</dl><p class="label-note">Las intervenciones son independientes; no representan porcentajes de autoría.</p></section>
-      <section class="label-box"><h4>Valor cognitivo</h4><ul class="label-values">${ratingMarkup(tag)}</ul><p class="label-note">Estrellas: autovaloración humana. 1 repetir · 2 seguir una guía · 3 explicar · 4 adaptar y revisar · 5 aplicar a un caso nuevo.</p></section>
+      <section class="label-box"><h4>Valor cognitivo</h4><ul class="label-values">${ratingMarkup(tag)}</ul><p class="label-note">Estrellas: valoración humana de 1 a 5. Relación con la IA: taxonomía STORYQIA.</p></section>
       <section class="label-box"><h4>Relación con la IA</h4><strong>${escape(relationReading(tag).name)}</strong></section>
       <section class="label-box"><h4>Decisión clave y justificación</h4><strong>${escape(tag.decisionMoment || 'Sin decisión registrada')}</strong><p>${escape(tag.decisionWhy || 'Justificación pendiente')}</p></section>
 </div></article>`).join('');
@@ -88,7 +86,7 @@
     const fields=[['Función de IA',tag.aiFunction],['Intervención IA',tag.aiIntervention],['Intervención humana',tag.humanIntervention],['Decisión',tag.decisionMoment],['Justificación',tag.decisionWhy],['Relación con IA',tag.relation],['Evidencia de relación',tag.relationEvidence]];
     return fields.map(([name,value])=>name+': '+(value || 'Sin registro')).join('\n')+'\n'+ratings(tag).map(r=>r.name+': '+(r.supported?r.level:'Pendiente de valoración o evidencia')+'\nCriterio: '+r.criterion+'\nEvidencia: '+(r.evidence || 'Sin registro')).join('\n');
   }
-  const api = {build, render, ratings, values, names, criteria, levels, relations, describe, levelGuide, levelCaption, guideMarkup};
+  const api = {build, render, ratings, values, names, criteria, levels, relations, relationReading, describe, taxonomy, normalizeLevel, levelCaption, guideMarkup};
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.StoryQCognitiveLabel = api;
 })(typeof window !== 'undefined' ? window : globalThis);
