@@ -5,7 +5,7 @@
     'Comparé una propuesta de IA con criterios o fuentes y justifiqué qué aceptar o rechazar.',
     'Transformé la propuesta para producir una solución propia y explicar mis elecciones.',
     'Reconocí qué delegué, qué comprendí y qué estrategia necesitaba ajustar.',
-    'Recuperé y expliqué una idea sin copiar una nueva respuesta de IA; conservé mis ayudas de accesibilidad.',
+    'Recordé y relacioné experiencias significativas para construir sentido y conectar lo vivido con nuevos aprendizajes.',
     'Identifiqué un problema, comparé alternativas y comprobé la solución elegida.',
     'Anticipé consecuencias y adapté mi propuesta ante un cambio de condiciones.'
   ];
