@@ -36,7 +36,7 @@
   }
   function render(state,steps) {
     const d=analyze(state,steps);
-    return `<section class="automatic-diagnosis"><p class="eyebrow">Diagnóstico pedagógico del proceso</p><h3>Lectura de los seis rubros</h3><p>${escape(d.summary)}</p>${d.rows.map(r=>`<section class="diagnosis-row"><h4>${r.name}</h4><strong>${r.status}</strong><p>${escape(r.interpretation)}</p>${r.evidence.map(s=>`<blockquote><b>${escape(s.field)}</b><br>${escape(s.text)}</blockquote>`).join('')}<p><b>Cómo fortalecerlo:</b> ${escape(r.next)}</p></section>`).join('')}<p><b>Próximo paso:</b> ${escape(d.next)}</p><details><summary>Cómo se produjo esta lectura</summary><p>${escape(d.method)}</p><p>${escape(d.limits)}</p></details></section>`;
+    return `<section class="automatic-diagnosis"><p class="eyebrow">Diagnóstico final del proceso</p><h3>Tu recorrido en seis rubros</h3><p>${escape(d.summary)}</p>${d.rows.map(r=>`<section class="diagnosis-row"><h4>${r.name}</h4><strong>${r.status}</strong><p>${escape(r.next)}</p><details><summary>Ver fundamento</summary><p>${escape(r.interpretation)}</p>${r.evidence.map(s=>`<blockquote><b>${escape(s.field)}</b><br>${escape(s.text)}</blockquote>`).join('')}</details></section>`).join('')}<div class="diagnosis-review"><b>Revisión declarada:</b> ${escape(state.reviewSource||'No evaluado')}<br><b>Reflexión:</b> ${escape(state.reflectionStatus||'No evaluado')}<br><b>Comprensión:</b> ${escape(state.understandingStatus||'No evaluado')}</div><p><b>Próximo paso:</b> ${escape(d.next)}</p><details><summary>Cómo se produjo esta lectura</summary><p>${escape(d.method)}</p><p>${escape(d.limits)}</p></details></section>`;
   }
   const api={analyze,render};
   if(typeof module!=='undefined'&&module.exports)module.exports=api;

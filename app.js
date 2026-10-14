@@ -889,6 +889,7 @@ function renderCognitiveForm() {
   cognitiveStepName.textContent = steps[current].title;
   cognitiveForm.innerHTML = "";
   cognitiveControls.forEach(([key, label, options]) => {
+    if (key === "cognitiveValue") return;
     const field = document.createElement("label");
     field.className = "mini-field";
     field.innerHTML = `<span>${label}</span>`;
@@ -932,7 +933,7 @@ function renderCognitiveForm() {
   cognitiveForm.append(why);
   const rubric = document.createElement("details");
   rubric.className = "cognitive-rubric mini-field wide";
-  rubric.innerHTML = "<summary>Valorar mis capacidades y mi relación con la IA</summary><p>Valora cada capacidad con una acción o ejemplo de este momento. Una selección sin evidencia queda pendiente. Puedes indicar que no la observaste o que no aplica.</p>";
+  rubric.innerHTML = "<summary>Mis estrellas · autovaloración</summary><p>Elige tus niveles. Usaremos lo que ya escribiste; no necesitas repetir evidencias.</p>";
   tags.ratings ||= {};
   const api = StoryQCognitiveLabel;
   function selectField(title, options, value, change) {
@@ -942,19 +943,14 @@ function renderCognitiveForm() {
     options.forEach(text => { const option = document.createElement("option"); option.value=text; option.textContent=text; select.append(option); });
     select.value=value || options[0]; select.addEventListener("change",()=>{change(select.value);save();renderPreview();});label.append(select);return label;
   }
-  function evidenceField(title, value, change) {
-    const label=document.createElement("label");label.className="mini-field wide";
-    const span=document.createElement("span");span.textContent=title;label.append(span);
-    const input=document.createElement("textarea");input.value=value || "";input.placeholder="Qué hice, con qué criterio y qué evidencia lo muestra. Si no aplica, explica por qué.";
-    input.addEventListener("input",()=>{change(input.value);save();renderPreview();});label.append(input);return label;
-  }
+  const choices = document.createElement("div"); choices.className = "star-selectors";
   api.values.forEach((key,i)=>{
-    const group=document.createElement("fieldset"); const legend=document.createElement("legend");legend.textContent=api.names[i];group.append(legend);
-    const criterion=document.createElement("p");criterion.textContent=api.criteria[i];group.append(criterion);
     const rating=tags.ratings[key] ||= {level:"Pendiente",evidence:""};
-    group.append(selectField("Nivel que observé",api.levels,rating.level,v=>rating.level=v),evidenceField("Evidencia o razón",rating.evidence,v=>rating.evidence=v));rubric.append(group);
+    const field=selectField(api.names[i],api.levels,rating.level,v=>rating.level=v);
+    field.title=api.criteria[i];choices.append(field);
   });
-  rubric.append(selectField("Relación con la IA en este momento",api.relations,tags.relation,v=>tags.relation=v),evidenceField("Acción que justifica esta relación",tags.relationEvidence,v=>tags.relationEvidence=v));
+  rubric.append(choices);
+  rubric.append(selectField("Mi relación con la IA",api.relations,tags.relation,v=>tags.relation=v));
   cognitiveForm.append(rubric);
 }
 
@@ -1057,7 +1053,7 @@ function renderPreview() {
   document.querySelector("#summaryDilemma").textContent = compact(preview.summaries[0]);
   document.querySelector("#summaryHuman").textContent = compact(preview.summaries[1]);
   document.querySelector("#summaryIssue").textContent = compact(preview.summaries[2]);
-  document.querySelector("#cognitiveLabels").innerHTML = StoryQCognitiveDiagnosis.render(state, steps) + StoryQCognitiveLabel.render(state, steps);
+  document.querySelector("#cognitiveLabels").innerHTML = StoryQCognitiveLabel.render(state, steps) + (current === steps.length - 1 ? StoryQCognitiveDiagnosis.render(state, steps) : "");
   renderJourney();
   renderCoreCompletion();
   renderTrace();
@@ -1400,17 +1396,19 @@ function renderReadableReport() {
   note.textContent = "Reconocer dudas no resta puntos ni bloquea la entrega. No evaluado no significa falta de capacidad. La reflexión y la comprensión se registran por separado. La etiqueta identifica el tipo de revisión declarado.";
   const labels = document.createElement("div");
   labels.className = "report-labels";
-  labels.innerHTML = StoryQCognitiveDiagnosis.render(state, steps) + StoryQCognitiveLabel.render(state, steps);
-  report.append(labels, heading, note);
+  labels.innerHTML = StoryQCognitiveLabel.render(state, steps) + StoryQCognitiveDiagnosis.render(state, steps);
+  report.append(labels);
+  const archive=document.createElement("details"); archive.className="report-archive";
+  const summary=document.createElement("summary");summary.textContent="Consultar el registro completo y la bitácora";archive.append(summary,heading,note);report.append(archive);
   for (const section of reportSections()) {
     const element = document.createElement("section");
     element.innerHTML = `<h4>${escapeReport(section.title)}</h4><dl>${section.items.map(([label, value]) => `<dt>${escapeReport(label)}</dt><dd>${escapeReport(value)}</dd>`).join("")}</dl>`;
-    report.append(element);
+    archive.append(element);
   }
   const trace = document.createElement("pre");
   trace.className = "report-details";
   trace.textContent = buildReadableReportText().split("ETIQUETAS POR MOMENTO\n")[1];
-  report.append(trace);
+  archive.append(trace);
 }
 
 function showEvidence() {
