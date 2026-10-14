@@ -1,0 +1,18 @@
+const assert=require('node:assert/strict');
+const api=require('../cognitive-label.js');
+const key=api.values[0];
+let tag={ratings:{[key]:{level:api.levels[4],evidence:''}}};
+assert.equal(api.ratings(tag)[0].supported,false);
+assert.equal(api.ratings(tag)[0].level,'3 · Expliqué mis razones');
+tag.ratings[key].evidence='Comparé las fuentes y rechacé una afirmación.';
+assert.equal(api.ratings(tag)[0].supported,true);
+const state={activityName:'Prueba',_cognitiveTags:{test:{...tag,aiFunction:'Ayudante',relation:'Soberanía cognitiva',relationEvidence:'Decidí con criterio'}}};
+const steps=[{id:'test',title:'Prueba'}];
+const html=api.render(state,steps);
+assert(html.includes('★★★☆☆'));
+assert(html.includes('No evaluado'));
+assert(html.includes('Soberanía cognitiva'));
+assert(!html.includes('0%'));
+assert.equal(api.build({_cognitiveTags:{}},steps).length,0);
+assert(api.render({...state,activityName:'<script>alert(1)</script>'},steps).includes('&lt;script&gt;'));
+console.log('PASS: levels require evidence, justified relation, stars, pending understanding, safe rendering');

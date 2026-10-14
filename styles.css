@@ -1260,6 +1260,14 @@ select {
 .label-values { list-style: none; padding: 0; margin: 0; }
 .label-values li { display: flex; justify-content: space-between; gap: 10px; padding: 8px 0; border-bottom: 1px solid #e3d6bc; font-size: 13px; }
 .label-values strong { color: #2d6f61; font-size: 11px; }
+.label-values small { display: block; margin-top: 4px; font-size: 11px; color: #53616b; line-height: 1.4; }
+.rating-evidence { display: block !important; color: #17334e; white-space: pre-wrap; }
+.cognitive-rubric { padding: 16px; border: 1px solid #d7a74a; border-radius: 12px; }
+.cognitive-rubric summary { cursor: pointer; font-weight: 800; color: #f5db9b; }
+.cognitive-rubric p { font-size: 14px; line-height: 1.5; }
+.cognitive-rubric fieldset { border: 1px solid #d7a74a; border-radius: 10px; margin: 18px 0; padding: 16px; min-width: 0; }
+.cognitive-rubric legend { padding: 0 8px; font-weight: 700; }
+.cognitive-rubric select { white-space: normal; max-width: 100%; }
 .label-evidence summary { cursor: pointer; font-weight: 700; }
 .report-labels .result-label { max-width: 760px; }
 @media (max-width: 480px) { .result-label { grid-template-columns: 1fr; } .label-brand { flex-direction: row; flex-wrap: wrap; justify-content: center; } .label-brand img,.label-brand p { display: none; } }
@@ -1275,3 +1283,6 @@ select {
   .label-evidence { display: none; }
   .label-box { padding: 9px; margin: 9px 0; }
 }
+
+.rating-stars { display: block; font-size: 18px; color: #b9842d; letter-spacing: 2px; }
+@media print { .result-label { break-inside: auto; } .label-content .label-box { break-inside: avoid; } }

@@ -1,6 +1,34 @@
 (function (root) {
   const values = ['Pensamiento critico', 'Creatividad', 'Metacognicion', 'Memoria activa', 'Resolucion de problemas', 'Vision prospectiva'];
   const names = ['Pensamiento crítico', 'Creatividad', 'Metacognición', 'Memoria activa', 'Resolución de problemas', 'Visión prospectiva'];
+  const criteria = [
+    'Comparé una propuesta de IA con criterios o fuentes y justifiqué qué aceptar o rechazar.',
+    'Transformé la propuesta para producir una solución propia y explicar mis elecciones.',
+    'Reconocí qué delegué, qué comprendí y qué estrategia necesitaba ajustar.',
+    'Recuperé y expliqué una idea sin copiar una nueva respuesta de IA; conservé mis ayudas de accesibilidad.',
+    'Identifiqué un problema, comparé alternativas y comprobé la solución elegida.',
+    'Anticipé consecuencias y adapté mi propuesta ante un cambio de condiciones.'
+  ];
+  const levels = ['Pendiente', 'No observé esta capacidad', '1 · Reproduje una respuesta', '2 · La ejercí con guía', '3 · Expliqué mis razones', '4 · Adapté y comprobé', '5 · Transferí y defendí con autonomía', 'No aplica'];
+  const relations = ['Pendiente', 'Descarga cognitiva', 'Apoyo cognitivo', 'Contraste crítico', 'Apropiación intelectual', 'Soberanía cognitiva'];
+  function ratings(tag) {
+    return values.map((key, i) => {
+      const r = tag.ratings?.[key] || {};
+      const level = levels.includes(r.level) ? r.level : 'Pendiente';
+      const evidence = typeof r.evidence === 'string' ? r.evidence.trim() : '';
+      return {key, name:names[i], criterion:criteria[i], level, evidence,
+        supported: level !== 'Pendiente' && Boolean(evidence)};
+    });
+  }
+  function stars(r) {
+    const match = r.level.match(/^([1-5]) ·/);
+    if (!r.supported || !match) return '';
+    const n=Number(match[1]);
+    return `<span class="rating-stars" aria-label="Nivel ${n} de 5">${'★'.repeat(n)}${'☆'.repeat(5-n)}</span>`;
+  }
+  function ratingMarkup(tag) {
+    return ratings(tag).map(r => `<li><div><span>${r.name}</span><small>${escape(r.criterion)}</small></div><strong>${stars(r)}${escape(r.supported ? r.level : r.level === 'Pendiente' ? 'Por valorar' : 'Falta evidencia')}</strong></li>${r.evidence ? `<li class="rating-evidence">Evidencia: ${escape(r.evidence)}</li>` : ''}`).join('');
+  }
   const escape = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const present = value => value && !['No registrado', 'Sin decision critica'].includes(value);
   function build(state, steps) {
@@ -13,6 +41,7 @@
       participant: state.studentName || 'Sin registro',
       date: state.sessionDate || 'Sin registro',
       ...state._cognitiveTags[step.id],
+      assessment: ratings(state._cognitiveTags[step.id]),
       reflection: state.reflectionStatus || 'No evaluado',
       understanding: state.understandingStatus || 'No evaluado',
       evidence: state.reviewEvidence || 'Sin evidencia de revisión registrada',
@@ -28,12 +57,17 @@
       <div class="label-content"><header><span class="label-kicker">Etiqueta de valor cognitivo</span><h3>STORYQ</h3><p>${escape(tag.moment)}</p></header>
       <dl class="label-identity">${detail('Actividad', tag.activity)}${detail('Participante',tag.participant)}${detail('Fecha de la actividad',tag.date)}${detail('Función de la IA',tag.aiFunction)}</dl>
       <section class="label-box"><h4>Intervención declarada</h4><dl class="label-interventions">${detail('Inteligencia artificial',tag.aiIntervention)}${detail('Intervención humana',tag.humanIntervention)}</dl><p class="label-note">Las intervenciones son independientes; no representan porcentajes de autoría.</p></section>
-      <section class="label-box"><h4>Valor cognitivo</h4><ul class="label-values">${values.map((value,i)=>`<li><span>${names[i]}</span><strong>${tag.cognitiveValue === value ? 'Seleccionado' : tag.cognitiveValue === 'No aplica' ? 'No aplica' : 'No valorado'}</strong></li>`).join('')}</ul><p class="label-note">Selección declarada para este momento. No se asignan estrellas sin una valoración de nivel.</p></section>
+      <section class="label-box"><h4>Valor cognitivo</h4><ul class="label-values">${ratingMarkup(tag)}</ul><p class="label-note">Autovaloración por criterio con evidencia declarada. Escala: 1 reproducción, 2 guía, 3 explicación, 4 adaptación, 5 transferencia autónoma. No es una certificación.</p></section>
+      <section class="label-box"><h4>Relación con la IA</h4><strong>${escape(tag.relationEvidence?.trim() && relations.includes(tag.relation) ? tag.relation : 'Por justificar')}</strong><p>${escape(tag.relationEvidence || 'Registra qué hiciste para sostener esta relación.')}</p></section>
       <section class="label-box label-review"><h4>Estado de revisión del aprendizaje</h4><dl>${detail('Tipo de revisión',tag.source)}${detail('Reflexión',tag.reflection)}${detail('Comprensión',tag.understanding)}</dl><p class="label-note">Estado de la actividad completa. No evaluado no equivale a cero. Sin porcentaje de salud cognitiva.</p></section>
       <section class="label-box"><h4>Decisión clave y justificación</h4><strong>${escape(tag.decisionMoment || 'Sin decisión registrada')}</strong><p>${escape(tag.decisionWhy || 'Justificación pendiente')}</p></section>
       <details class="label-evidence"><summary>Evidencia de la revisión</summary><p>${escape(tag.evidence)}</p></details></div></article>`).join('');
   }
-  const api = {build, render};
+  function describe(tag) {
+    const fields=[['Función de IA',tag.aiFunction],['Intervención IA',tag.aiIntervention],['Intervención humana',tag.humanIntervention],['Decisión',tag.decisionMoment],['Justificación',tag.decisionWhy],['Relación con IA',tag.relation],['Evidencia de relación',tag.relationEvidence]];
+    return fields.map(([name,value])=>name+': '+(value || 'Sin registro')).join('\n')+'\n'+ratings(tag).map(r=>r.name+': '+(r.supported?r.level:'Pendiente de valoración o evidencia')+'\nCriterio: '+r.criterion+'\nEvidencia: '+(r.evidence || 'Sin registro')).join('\n');
+  }
+  const api = {build, render, ratings, values, names, criteria, levels, relations, describe};
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.StoryQCognitiveLabel = api;
 })(typeof window !== 'undefined' ? window : globalThis);

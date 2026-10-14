@@ -930,6 +930,32 @@ function renderCognitiveForm() {
   });
   why.append(textarea);
   cognitiveForm.append(why);
+  const rubric = document.createElement("details");
+  rubric.className = "cognitive-rubric mini-field wide";
+  rubric.innerHTML = "<summary>Valorar mis capacidades y mi relación con la IA</summary><p>Valora cada capacidad con una acción o ejemplo de este momento. Una selección sin evidencia queda pendiente. Puedes indicar que no la observaste o que no aplica.</p>";
+  tags.ratings ||= {};
+  const api = StoryQCognitiveLabel;
+  function selectField(title, options, value, change) {
+    const label = document.createElement("label"); label.className = "mini-field wide";
+    const span = document.createElement("span"); span.textContent = title; label.append(span);
+    const select = document.createElement("select");
+    options.forEach(text => { const option = document.createElement("option"); option.value=text; option.textContent=text; select.append(option); });
+    select.value=value || options[0]; select.addEventListener("change",()=>{change(select.value);save();renderPreview();});label.append(select);return label;
+  }
+  function evidenceField(title, value, change) {
+    const label=document.createElement("label");label.className="mini-field wide";
+    const span=document.createElement("span");span.textContent=title;label.append(span);
+    const input=document.createElement("textarea");input.value=value || "";input.placeholder="Qué hice, con qué criterio y qué evidencia lo muestra. Si no aplica, explica por qué.";
+    input.addEventListener("input",()=>{change(input.value);save();renderPreview();});label.append(input);return label;
+  }
+  api.values.forEach((key,i)=>{
+    const group=document.createElement("fieldset"); const legend=document.createElement("legend");legend.textContent=api.names[i];group.append(legend);
+    const criterion=document.createElement("p");criterion.textContent=api.criteria[i];group.append(criterion);
+    const rating=tags.ratings[key] ||= {level:"Pendiente",evidence:""};
+    group.append(selectField("Nivel que observé",api.levels,rating.level,v=>rating.level=v),evidenceField("Evidencia o razón",rating.evidence,v=>rating.evidence=v));rubric.append(group);
+  });
+  rubric.append(selectField("Relación con la IA en este momento",api.relations,tags.relation,v=>tags.relation=v),evidenceField("Acción que justifica esta relación",tags.relationEvidence,v=>tags.relationEvidence=v));
+  cognitiveForm.append(rubric);
 }
 
 function updateProgress() {
@@ -1357,7 +1383,7 @@ function buildReadableReportText() {
   return ["StoryQIA Studio — " + routes[activeRoute].short,
     "Evidencias de agencia y aprendizaje. Las dudas no restan puntos. Sin registro no significa falta de capacidad. La etiqueta identifica el tipo de revisión declarado.",
     ...reportSections().map(section => section.title + "\n" + section.items.map(([label, value]) => label + ": " + value).join("\n")),
-    "ETIQUETAS POR MOMENTO\n" + Object.entries(state._cognitiveTags || {}).map(([id, tag]) => (steps.find(step => step.id === id)?.title || id) + ": " + Object.entries(tag).map(([key, value]) => key + " — " + value).join("; ")).join("\n"),
+    "ETIQUETAS POR MOMENTO\n" + Object.entries(state._cognitiveTags || {}).map(([id, tag]) => (steps.find(step => step.id === id)?.title || id) + ": " + StoryQCognitiveLabel.describe(tag)).join("\n"),
     "BITÁCORA\n" + state._timeline.map(event => event.title + ": " + (event.detail || event.type)).join("\n")].join("\n\n");
 }
 function escapeReport(value) {
@@ -1511,8 +1537,17 @@ document.querySelector("#restoreFile").addEventListener("change", async event =>
     for (const step of routes[imported.route].steps) {
       if (!tags || !Object.hasOwn(tags, step.id) || !tags[step.id]) continue;
       clean._cognitiveTags[step.id] = {};
-      for (const key of [...cognitiveControls.map(item => item[0]), "decisionWhy"]) {
+      for (const key of [...cognitiveControls.map(item => item[0]), "decisionWhy", "relation", "relationEvidence"]) {
         if (typeof tags[step.id][key] === "string") clean._cognitiveTags[step.id][key] = tags[step.id][key];
+      }
+      clean._cognitiveTags[step.id].ratings = {};
+      for (const key of StoryQCognitiveLabel.values) {
+        const rating = tags[step.id].ratings?.[key];
+        if (!rating || typeof rating !== "object") continue;
+        clean._cognitiveTags[step.id].ratings[key] = {
+          level: StoryQCognitiveLabel.levels.includes(rating.level) ? rating.level : "Pendiente",
+          evidence: typeof rating.evidence === "string" ? rating.evidence : ""
+        };
       }
     }
     if (Array.isArray(imported.evidence._timeline)) clean._timeline = imported.evidence._timeline.filter(item => item && typeof item === "object").map(item => Object.fromEntries(["at", "step", "type", "title", "detail"].filter(key => typeof item[key] === "string").map(key => [key, item[key]])));
