@@ -1336,3 +1336,14 @@ select {
 }
 
 @media print { .evidence-header { display:none; } .report-labels > .result-label:first-child { break-before:auto; } }
+
+.label-index > strong { font-size:28px; color:#b9842d; }
+.label-comparison { border:2px solid #d7a74a; border-radius:12px; padding:16px; margin:20px 0; background:#fffaf0; color:#102941; }
+.label-comparison table { width:100%; border-collapse:collapse; font-size:12px; }
+.label-comparison th,.label-comparison td { padding:8px; border-bottom:1px solid #d7a74a; text-align:left; }
+.label-comparison p { font-size:12px; line-height:1.5; }
+@media print { .label-comparison { break-before:page; break-after:page; } .report-labels .result-label .label-index { padding:6px; } .report-labels .result-label .label-index > strong { font-size:20px; } }
+
+.optional-comparison { margin:18px 0; border:1px solid #d7a74a; border-radius:10px; padding:12px; }
+.optional-comparison > summary { cursor:pointer; font-weight:700; }
+@media print { .optional-comparison:not([open]) { display:none; } .optional-comparison[open] { break-before:page; } }

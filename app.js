@@ -786,7 +786,7 @@ function compact(value, fallback = "Pendiente") {
 }
 
 function hasStudentWork() {
-  const ignored = new Set(["_meta", "_fieldTouched", "_fieldChanged", "_cognitiveTags", "_timeline"]);
+  const ignored = new Set(["_meta", "_fieldTouched", "_fieldChanged", "_cognitiveTags", "_designCognitiveTags", "_timeline", "labelPerspective"]);
   return Object.keys(state).some((key) => !ignored.has(key) && String(state[key] || "").trim());
 }
 
@@ -873,7 +873,8 @@ function renderField([key, label, type, hint]) {
 function currentTags() {
   ensureTrace();
   const stepId = steps[current].id;
-  state._cognitiveTags[stepId] ||= {
+  const collection=state.labelPerspective==='design' ? (state._designCognitiveTags ||= {}) : state._cognitiveTags;
+  collection[stepId] ||= {
     aiFunction: "No registrado",
     aiIntervention: "No registrado",
     humanIntervention: "No registrado",
@@ -881,13 +882,19 @@ function currentTags() {
     decisionMoment: "Sin decision critica",
     decisionWhy: ""
   };
-  return state._cognitiveTags[stepId];
+  return collection[stepId];
 }
 
 function renderCognitiveForm() {
   const tags = currentTags();
   cognitiveStepName.textContent = steps[current].title;
   cognitiveForm.innerHTML = "";
+  const perspectiveField=document.createElement("label");perspectiveField.className="mini-field wide";
+  perspectiveField.innerHTML="<span>Qué estoy valorando</span>";
+  const perspectiveSelect=document.createElement("select");perspectiveSelect.id="labelPerspective";
+  for(const [value,title] of [['student','Experiencia realizada'],['design','Diseño de la actividad']]) {const option=document.createElement("option");option.value=value;option.textContent=title;perspectiveSelect.append(option);}
+  perspectiveSelect.value=state.labelPerspective || 'student';
+  perspectiveSelect.addEventListener('change',()=>{state.labelPerspective=perspectiveSelect.value;save();render();});perspectiveField.append(perspectiveSelect);cognitiveForm.append(perspectiveField);
   cognitiveControls.forEach(([key, label, options]) => {
     if (key === "cognitiveValue") return;
     const field = document.createElement("label");
@@ -943,7 +950,7 @@ function renderCognitiveForm() {
     options.forEach(text => { const option = document.createElement("option"); option.value=text; option.textContent=options===api.levels ? api.levelCaption(text) : text; select.append(option); });
     select.value=options===api.levels ? api.normalizeLevel(value) : (options.includes(value) ? value : options[0]); select.addEventListener("change",()=>{change(select.value);save();renderPreview();});label.append(select);return label;
   }
-  const guide=document.createElement("div");guide.innerHTML=api.guideMarkup();rubric.append(guide);
+  const guide=document.createElement("div");guide.innerHTML=api.guideMarkup(state.labelPerspective);rubric.append(guide);
   const choices = document.createElement("div"); choices.className = "star-selectors";
   api.values.forEach((key,i)=>{
     const rating=tags.ratings[key] ||= {level:"Pendiente",evidence:""};
@@ -1102,7 +1109,7 @@ function traceStats() {
   const fields = steps.flatMap((step) => step.fields.map((field) => field[0]));
   const filled = fields.filter((key) => String(state[key] || "").trim()).length;
   const minutes = Math.max(0, Math.round((new Date() - new Date(state._meta.startedAt)) / 60000));
-  const tagValues = Object.values(state._cognitiveTags || {});
+  const tagValues = Object.values((state.labelPerspective==='design'?state._designCognitiveTags:state._cognitiveTags) || {});
   const decisionTags = tagValues.filter((tag) => tag.decisionMoment && tag.decisionMoment !== "Sin decision critica").length;
   const aiTags = tagValues.filter((tag) => tag.aiFunction && tag.aiFunction !== "Sin IA").length;
   return {
@@ -1233,6 +1240,7 @@ function buildEvidence() {
   const coreStats = coreCompletionStats();
   const payload = {
     cognitiveLabels: StoryQCognitiveLabel.build(state, steps),
+    labelPerspective: state.labelPerspective || "student",
     cognitiveDiagnosis: StoryQCognitiveDiagnosis.analyze(state, steps),
     title: `StoryQ Studio — ${routes[activeRoute].short}`,
     route: activeRoute,
@@ -1382,7 +1390,7 @@ function buildReadableReportText() {
     "Evidencias de agencia y aprendizaje. Las dudas no restan puntos. Sin registro no significa falta de capacidad. La etiqueta identifica el tipo de revisión declarado.",
     "DIAGNÓSTICO PEDAGÓGICO DEL PROCESO\n" + StoryQCognitiveDiagnosis.analyze(state, steps).rows.map(r => r.name + ": " + r.status + "\n" + r.interpretation + "\n" + r.evidence.map(e => e.field + ": " + e.text).join("\n") + "\nPróximo paso: " + r.next).join("\n\n"),
     ...reportSections().map(section => section.title + "\n" + section.items.map(([label, value]) => label + ": " + value).join("\n")),
-    "ETIQUETAS POR MOMENTO\n" + Object.entries(state._cognitiveTags || {}).map(([id, tag]) => (steps.find(step => step.id === id)?.title || id) + ": " + StoryQCognitiveLabel.describe(tag)).join("\n"),
+    "ETIQUETAS POR MOMENTO\n" + StoryQCognitiveLabel.build(state,steps).map(tag => (tag.perspective==='design'?'Docente · diseño':'Estudiante · experiencia') + " — " + tag.moment + "\n" + StoryQCognitiveLabel.describe(tag) + "\nÍndice declarado: " + (StoryQCognitiveLabel.index(tag).percent ?? "—") + "%").join("\n\n"),
     "BITÁCORA\n" + state._timeline.map(event => event.title + ": " + (event.detail || event.type)).join("\n")].join("\n\n");
 }
 function escapeReport(value) {
@@ -1533,23 +1541,26 @@ document.querySelector("#restoreFile").addEventListener("change", async event =>
     for (const [key] of routes[imported.route].steps.flatMap(step => step.fields)) {
       if (typeof imported.evidence[key] === "string") clean[key] = imported.evidence[key];
     }
-    const tags = imported.evidence._cognitiveTags;
-    clean._cognitiveTags = {};
+    clean.labelPerspective=imported.evidence.labelPerspective==='design'?'design':'student';
+    for(const collectionKey of ['_cognitiveTags','_designCognitiveTags']) {
+    const tags = imported.evidence[collectionKey];
+    clean[collectionKey] = {};
     for (const step of routes[imported.route].steps) {
       if (!tags || !Object.hasOwn(tags, step.id) || !tags[step.id]) continue;
-      clean._cognitiveTags[step.id] = {};
-      for (const key of [...cognitiveControls.map(item => item[0]), "decisionWhy", "relation", "relationEvidence"]) {
-        if (typeof tags[step.id][key] === "string") clean._cognitiveTags[step.id][key] = tags[step.id][key];
+      clean[collectionKey][step.id] = {};
+      for (const key of [...cognitiveControls.map(item => item[0]), "decisionWhy", "relation", "relationEvidence", "designAuthorship", "strategy"]) {
+        if (typeof tags[step.id][key] === "string") clean[collectionKey][step.id][key] = tags[step.id][key];
       }
-      clean._cognitiveTags[step.id].ratings = {};
+      clean[collectionKey][step.id].ratings = {};
       for (const key of StoryQCognitiveLabel.values) {
         const rating = tags[step.id].ratings?.[key];
         if (!rating || typeof rating !== "object") continue;
-        clean._cognitiveTags[step.id].ratings[key] = {
+        clean[collectionKey][step.id].ratings[key] = {
           level: StoryQCognitiveLabel.normalizeLevel(rating.level),
           evidence: typeof rating.evidence === "string" ? rating.evidence : ""
         };
       }
+    }
     }
     if (Array.isArray(imported.evidence._timeline)) clean._timeline = imported.evidence._timeline.filter(item => item && typeof item === "object").map(item => Object.fromEntries(["at", "step", "type", "title", "detail"].filter(key => typeof item[key] === "string").map(key => [key, item[key]])));
     clean._meta = {};

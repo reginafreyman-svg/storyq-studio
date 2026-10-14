@@ -35,6 +35,7 @@ const openActivitySteps = [
   { id: 'context', kicker: 'Cualquier materia', title: 'Configurar mi actividad', purpose: 'Acuerda el propósito y los criterios con tu docente. Este recorrido sirve para distintas materias y productos.', fields: [
     ['studentName', 'Estudiante o equipo', 'input', 'Nombre o referencia'],
     ['activityName', 'Actividad', 'input', '¿En qué estás trabajando?'],
+    ['sessionDate', 'Fecha y hora', 'input', 'Fecha y hora de la actividad.'],
     ['subjectName', 'Materia o contexto', 'input', 'Ciencias, historia, diseño, un proyecto comunitario…'],
     ['learningGoal', '¿Qué quiero aprender o demostrar?', 'textarea', 'Define una capacidad concreta y cómo podría observarse.'],
     ['aiAgreement', 'Acuerdo de uso de IA', 'textarea', '¿Qué puede delegarse y qué debe realizarse autónomamente?']

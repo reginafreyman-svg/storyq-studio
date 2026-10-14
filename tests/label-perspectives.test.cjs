@@ -1,0 +1,10 @@
+const assert=require('node:assert/strict');
+const api=require('../cognitive-label.js');
+const ratings=n=>Object.fromEntries(api.values.map(key=>[key,{level:String(n)}]));
+const state={activityName:'Prueba',_designCognitiveTags:{context:{ratings:ratings(4),decisionWhy:'Diseño previsto',designAuthorship:'5',strategy:'Sabio'}},_cognitiveTags:{context:{ratings:ratings(3),decisionWhy:'Experiencia realizada'}}};
+const steps=[{id:'context',title:'Configurar actividad'}];
+const labels=api.build(state,steps);assert.equal(labels.length,2);assert.equal(labels[0].perspective,'design');assert.equal(labels[1].perspective,'student');
+assert.deepEqual(api.index(state._designCognitiveTags.context),{percent:80,count:6});assert.equal(api.index(state._cognitiveTags.context).percent,60);
+assert(api.render(state,steps).includes('Etiqueta de valor cognitivo'));assert(api.render({...state,labelPerspective:'design'},steps).includes('Diseño de la actividad'));
+assert(api.compare(state,steps).includes('Diseño · previsto'));assert(!api.render(state,steps).includes('Autoría del diseño'));
+console.log('PASS: independent perspectives, 80/60 indices, empty index, original authorship and comparison');

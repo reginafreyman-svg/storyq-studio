@@ -10,6 +10,7 @@
     {name:'Visión prospectiva',keys:['pitchNext','pitchWorld','verificationLimits','pitchOpen','desirableFuture','testProtocol'],action:/probar|ensay|anticip|futuro|consecu|riesgo|adapt|prev|necesit|desconoz|todavia/,next:'Plantea un cambio de condiciones y explica cómo adaptarías tu propuesta.'}
   ];
   function analyze(state, steps=[]) {
+    state={...state,_cognitiveTags:state.labelPerspective==='design'?(state._designCognitiveTags||{}):(state._cognitiveTags||{})};
     const labels = Object.fromEntries(steps.flatMap(step=>(step.fields||[]).map(([key,label])=>[key,label])));
     const decisions=Object.entries(state._cognitiveTags || {}).filter(([,tag])=>String(tag.decisionWhy||'').trim()).map(([id,tag])=>({field:(steps.find(s=>s.id===id)?.title||id)+' · Decisión',text:tag.decisionWhy}));
     const rows=definitions.map((d,i)=>{
@@ -39,9 +40,10 @@
   }
   function render(state,steps) {
     const d=analyze(state,steps);
+    const perspective=state.labelPerspective==='design'?'Diseño de la actividad':'Experiencia realizada';
     const labelApi=root.StoryQCognitiveLabel || (typeof require==='function'?require('./cognitive-label.js'):null);
-    const relationships=Object.entries(state._cognitiveTags||{}).map(([id,tag])=>({moment:steps.find(step=>step.id===id)?.title||id,name:labelApi?.relationReading(tag).name,why:tag.decisionWhy||''}));
-    return `<section class="automatic-diagnosis"><p class="eyebrow">Etiqueta cognitiva STORYQ</p><h3>Valor cognitivo</h3><p>${escape(d.summary)}</p>${d.rows.map(r=>`<section class="diagnosis-row"><h4>${r.name}</h4><p>${escape(r.interpretation)}</p><details><summary>Registro y estrellas</summary>${r.stars.map(v=>`<p>${escape(v.moment)}: ${'★'.repeat(Number(v.level))}${'☆'.repeat(5-Number(v.level))}</p>`).join('')}${r.evidence.map(s=>`<blockquote><b>${escape(s.field)}</b><br>${escape(s.text)}</blockquote>`).join('')}</details></section>`).join('')}<h3>Taxonomía del pensamiento frente a la IA</h3>${relationships.map(r=>`<p><b>${escape(r.moment)}:</b> ${escape(r.name || '—')}</p>`).join('')}<p><b>Decisión clave y justificación:</b> ${escape(state.decisionReason||relationships.filter(r=>r.why).at(-1)?.why||'—')}</p><details><summary>Referencia del análisis</summary><p>${escape(d.method)}</p><p>${escape(d.limits)}</p></details></section>`;
+    const relationships=Object.entries((state.labelPerspective==='design'?state._designCognitiveTags:state._cognitiveTags)||{}).map(([id,tag])=>({moment:steps.find(step=>step.id===id)?.title||id,name:labelApi?.relationReading(tag).name,why:tag.decisionWhy||''}));
+    return `<section class="automatic-diagnosis"><p class="eyebrow">Etiqueta cognitiva STORYQ</p><h3>Valor cognitivo · ${perspective}</h3><p>${escape(d.summary)}</p>${d.rows.map(r=>`<section class="diagnosis-row"><h4>${r.name}</h4><p>${escape(r.interpretation)}</p><details><summary>Registro y estrellas</summary>${r.stars.map(v=>`<p>${escape(v.moment)}: ${'★'.repeat(Number(v.level))}${'☆'.repeat(5-Number(v.level))}</p>`).join('')}${r.evidence.map(s=>`<blockquote><b>${escape(s.field)}</b><br>${escape(s.text)}</blockquote>`).join('')}</details></section>`).join('')}<h3>Taxonomía del pensamiento frente a la IA</h3>${relationships.map(r=>`<p><b>${escape(r.moment)}:</b> ${escape(r.name || '—')}</p>`).join('')}<p><b>Decisión clave y justificación:</b> ${escape(state.decisionReason||relationships.filter(r=>r.why).at(-1)?.why||'—')}</p><details><summary>Referencia del análisis</summary><p>${escape(d.method)}</p><p>${escape(d.limits)}</p></details></section>`;
 
   }
   const api={analyze,render};
