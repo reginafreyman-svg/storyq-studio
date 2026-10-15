@@ -786,7 +786,7 @@ function compact(value, fallback = "Pendiente") {
 }
 
 function hasStudentWork() {
-  const ignored = new Set(["_meta", "_fieldTouched", "_fieldChanged", "_cognitiveTags", "_designCognitiveTags", "_timeline", "labelPerspective"]);
+  const ignored = new Set(["_meta", "_fieldTouched", "_fieldChanged", "_cognitiveTags", "_designCognitiveTags", "_timeline", "_biasReview", "labelPerspective"]);
   return Object.keys(state).some((key) => !ignored.has(key) && String(state[key] || "").trim());
 }
 
@@ -971,6 +971,7 @@ function updateProgress() {
 }
 
 function render() {
+  StoryQBiasReview.mount(document.querySelector("#biasReview"), () => state._biasReview, data => { state._biasReview=data; save(); });
   if (!steps[current]) current = 0;
   const step = steps[current];
   const route = routes[activeRoute];
@@ -1240,6 +1241,7 @@ function buildEvidence() {
   const coreStats = coreCompletionStats();
   const payload = {
     cognitiveLabels: StoryQCognitiveLabel.build(state, steps),
+    biasReview: { ...StoryQBiasReview.clean(state._biasReview), findings: StoryQBiasReview.analyze(state._biasReview?.text), method: "Coincidencias de expresiones; revisión humana" },
     labelPerspective: state.labelPerspective || "student",
     cognitiveDiagnosis: StoryQCognitiveDiagnosis.analyze(state, steps),
     title: `StoryQ Studio — ${routes[activeRoute].short}`,
@@ -1390,6 +1392,7 @@ function buildReadableReportText() {
     "Evidencias de agencia y aprendizaje. Las dudas no restan puntos. Sin registro no significa falta de capacidad. La etiqueta identifica el tipo de revisión declarado.",
     "DIAGNÓSTICO PEDAGÓGICO DEL PROCESO\n" + StoryQCognitiveDiagnosis.analyze(state, steps).rows.map(r => r.name + ": " + r.status + "\n" + r.interpretation + "\n" + r.evidence.map(e => e.field + ": " + e.text).join("\n") + "\nPróximo paso: " + r.next).join("\n\n"),
     ...reportSections().map(section => section.title + "\n" + section.items.map(([label, value]) => label + ": " + value).join("\n")),
+    StoryQBiasReview.reportText(state._biasReview),
     "ETIQUETAS POR MOMENTO\n" + StoryQCognitiveLabel.build(state,steps).map(tag => (tag.perspective==='design'?'Docente · diseño':'Estudiante · experiencia') + " — " + tag.moment + "\n" + StoryQCognitiveLabel.describe(tag) + "\nÍndice declarado: " + (StoryQCognitiveLabel.index(tag).percent ?? "—") + "%").join("\n\n"),
     "BITÁCORA\n" + state._timeline.map(event => event.title + ": " + (event.detail || event.type)).join("\n")].join("\n\n");
 }
@@ -1405,7 +1408,7 @@ function renderReadableReport() {
   note.textContent = "Reconocer dudas no resta puntos ni bloquea la entrega. No evaluado no significa falta de capacidad. La reflexión y la comprensión se registran por separado. La etiqueta identifica el tipo de revisión declarado.";
   const labels = document.createElement("div");
   labels.className = "report-labels";
-  labels.innerHTML = StoryQCognitiveLabel.render(state, steps) + StoryQCognitiveDiagnosis.render(state, steps);
+  labels.innerHTML = StoryQCognitiveLabel.render(state, steps) + StoryQCognitiveDiagnosis.render(state, steps) + StoryQBiasReview.reportMarkup(state._biasReview);
   report.append(labels);
   const archive=document.createElement("details"); archive.className="report-archive";
   const summary=document.createElement("summary");summary.textContent="Consultar el registro completo y la bitácora";archive.append(summary,heading,note);report.append(archive);
@@ -1541,6 +1544,7 @@ document.querySelector("#restoreFile").addEventListener("change", async event =>
     for (const [key] of routes[imported.route].steps.flatMap(step => step.fields)) {
       if (typeof imported.evidence[key] === "string") clean[key] = imported.evidence[key];
     }
+    clean._biasReview=StoryQBiasReview.clean(imported.evidence._biasReview);
     clean.labelPerspective=imported.evidence.labelPerspective==='design'?'design':'student';
     for(const collectionKey of ['_cognitiveTags','_designCognitiveTags']) {
     const tags = imported.evidence[collectionKey];

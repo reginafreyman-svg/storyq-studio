@@ -51,10 +51,7 @@
   const present = value => value && !['No registrado', 'Sin decision critica'].includes(value);
   function relationReading(tag) {
     if(relations.includes(tag.relation) && tag.relation) return {name:tag.relation,reason:tag.relationEvidence || tag.decisionWhy || ''};
-    const why=String(tag.decisionWhy || '').trim();
-    if(why && /Contraste|Oponente/.test(tag.aiFunction||'')) return {name:'Contraste crítico',reason:why};
-    if(tag.aiFunction === 'Ayudante') return {name:'Apoyo cognitivo',reason:why};
-    return {name:'—',reason:why};
+    return {name:'—',reason:tag.decisionWhy || ''};
   }
   function build(state, steps) {
     return ['design','student'].flatMap(perspective => steps.filter(step => {

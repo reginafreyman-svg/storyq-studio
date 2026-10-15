@@ -1,0 +1,12 @@
+const assert=require('node:assert/strict');
+const api=require('../bias-review.js');
+assert.deepEqual(api.analyze('Yo puedo ordenar el documento. Tú decides.'),[]);
+assert.deepEqual(api.analyze(''),[]);
+assert.equal(api.analyze('Siento con todo mi corazón que tu idea es genial. Sin duda alguna.').length,3);
+assert.equal(api.analyze('MI CORAZÓN')[0].match,'MI CORAZÓN');
+assert.equal(api.clean({text:42,decision:'Decidí verificar',sample:true}).text,'');
+assert.equal(api.reportText({}),'');
+assert(api.reportText({text:'mi corazón',decision:'Revisé el contexto'}).includes('Revisé el contexto'));
+assert(!api.reportMarkup({text:'<script>alert(1)</script>'}).includes('<script>'));
+assert(api.reportMarkup({text:'<script>'}).includes('&lt;script&gt;'));
+console.log('PASS: text-linked clues, no pronoun flags, contextual limits, optional report and escaped input');

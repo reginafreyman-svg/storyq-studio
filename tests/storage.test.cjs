@@ -23,13 +23,14 @@ function element(){return {dataset:{},style:{},classList:{toggle(){}},listeners:
 const document={body:element(),documentElement:{},createElement:element,
  querySelector(key){if(!nodes.has(key))nodes.set(key,element());return nodes.get(key)},querySelectorAll(){return []},addEventListener(){}};
 map.clear();
-const context=vm.createContext({console,document,StoryQCognitiveDiagnosis:require('../cognitive-diagnosis.js'),StoryQCognitiveLabel:require('../cognitive-label.js'),window:{localStorage:disk,addEventListener(){},scrollTo(){},print(){}},confirm:()=>true,Date,URL,Blob,setTimeout:()=>{},navigator:{}});
+const context=vm.createContext({console,document,StoryQBiasReview:{...require('../bias-review.js'),mount(){}},StoryQCognitiveDiagnosis:require('../cognitive-diagnosis.js'),StoryQCognitiveLabel:require('../cognitive-label.js'),window:{localStorage:disk,addEventListener(){},scrollTo(){},print(){}},confirm:()=>true,Date,URL,Blob,setTimeout:()=>{},navigator:{}});
 for(const name of ['storage.js','reflection.js','app.js'])vm.runInContext(fs.readFileSync(path.join(__dirname,'..',name),'utf8'),context);
 (async()=>{
- const payload={route:'open',evidence:{activityName:'Prueba',learningGoal:'Conservar respuesta',pitchOpen:'Todavía tengo dudas',_cognitiveTags:{context:{relation:'Contraste crítico',relationEvidence:'Verifiqué una fuente',ratings:{'Pensamiento critico':{level:'3 · Expliqué mis razones',evidence:'Comparé dos fuentes'}}}},labelPerspective:'design',_designCognitiveTags:{context:{ratings:{'Creatividad':{level:'4'}},decisionWhy:'Diseño previsto'}},_meta:{decisions:2},_timeline:[]}};
+ const payload={route:'open',evidence:{activityName:'Prueba',_biasReview:{text:'Mi corazón',decision:'Verifiqué el contexto',sample:false},learningGoal:'Conservar respuesta',pitchOpen:'Todavía tengo dudas',_cognitiveTags:{context:{relation:'Contraste crítico',relationEvidence:'Verifiqué una fuente',ratings:{'Pensamiento critico':{level:'3 · Expliqué mis razones',evidence:'Comparé dos fuentes'}}}},labelPerspective:'design',_designCognitiveTags:{context:{ratings:{'Creatividad':{level:'4'}},decisionWhy:'Diseño previsto'}},_meta:{decisions:2},_timeline:[]}};
  const target={files:[{size:200,text:async()=>JSON.stringify(payload)}],value:'file'};
  await nodes.get('#restoreFile').listeners.change({target});
  const stored=JSON.parse(map.get('storyqRouteStore'));
+ assert.equal(stored.open._biasReview.decision,'Verifiqué el contexto');
  assert.equal(stored.open.learningGoal,'Conservar respuesta');
  assert.equal(stored.open.pitchOpen,'Todavía tengo dudas');
  assert.equal(stored.open._cognitiveTags.context.ratings['Pensamiento critico'].level,'3');

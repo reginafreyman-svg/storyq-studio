@@ -1347,3 +1347,12 @@ select {
 .optional-comparison { margin:18px 0; border:1px solid #d7a74a; border-radius:10px; padding:12px; }
 .optional-comparison > summary { cursor:pointer; font-weight:700; }
 @media print { .optional-comparison:not([open]) { display:none; } .optional-comparison[open] { break-before:page; } }
+
+/* Complementary review: no additional score or required fields. */
+.bias-review{margin:1rem 0;padding:1rem;border:1px solid #ba8d43;border-radius:12px;background:#faf6ea;color:#102d40;}
+.bias-review>summary{font-weight:700;cursor:pointer;}
+.bias-review label{display:block;margin-top:1rem;font-weight:600;}
+.bias-review textarea{display:block;box-sizing:border-box;width:100%;margin:.5rem 0;resize:vertical;}
+.bias-review li{margin:.8rem 0;}
+.bias-report{border:1px solid #ba8d43;border-radius:10px;padding:1rem;margin-top:1rem;overflow-wrap:anywhere;}
+@media print{.bias-review{display:none}.bias-report p{font-size:10pt;line-height:1.35}}
