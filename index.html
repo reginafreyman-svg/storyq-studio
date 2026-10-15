@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>StoryQ Studio — Trazabilidad creativa</title>
-    <link rel="stylesheet" href="./styles.css?v=memory1">
+    <link rel="stylesheet" href="./styles.css?v=taxonomy2">
   </head>
   <body>
     <section class="save-panel" aria-label="Guardar y recuperar mi trabajo">
@@ -197,6 +197,8 @@
                 <button id="copyEvidenceBtn" class="ghost compact" type="button">Copiar datos</button>
               </div>
             </div>
+            <p class="label-note">StoryQ Studio registra el proceso en una bitácora y, a partir de ella, genera este reporte con tus etiquetas, decisiones y reflexiones.</p>
+            <details class="star-guide"><summary>RELATO · guía para conversar con IA</summary><p>Rol, Escenario, Logro, Antecedentes, Tipo y Optimización describen la anatomía del prompt. Su uso es orientativo, no obligatorio: puedes construir estos componentes durante la conversación. Optimizar implica revisar y decidir qué conservar, ajustar o descartar.</p></details>
             <div id="readableReport" class="readable-report"></div>
             <textarea id="evidenceText" readonly aria-label="Evidencia del laboratorio"></textarea>
             <p id="copyStatus" class="copy-status" aria-live="polite"></p>
@@ -206,9 +208,9 @@
     </div>
 
     <script src="./storage.js?v=save1"></script>
-    <script src="./reflection.js?v=memory1"></script>
-    <script src="./cognitive-diagnosis.js?v=memory1"></script>
-    <script src="./cognitive-label.js?v=memory1"></script>
-    <script src="./app.js?v=memory1"></script>
+    <script src="./reflection.js?v=taxonomy2"></script>
+    <script src="./cognitive-diagnosis.js?v=taxonomy2"></script>
+    <script src="./cognitive-label.js?v=taxonomy2"></script>
+    <script src="./app.js?v=taxonomy2"></script>
   </body>
 </html>

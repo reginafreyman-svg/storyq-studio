@@ -940,7 +940,7 @@ function renderCognitiveForm() {
   cognitiveForm.append(why);
   const rubric = document.createElement("details");
   rubric.className = "cognitive-rubric mini-field wide";
-  rubric.innerHTML = "<summary>Mis estrellas · autovaloración</summary><p>Elige tus niveles. Usaremos lo que ya escribiste; no necesitas repetir evidencias.</p>";
+  rubric.innerHTML = "<summary>Mis estrellas · autovaloración</summary><p>Cada estrella representa una relación de la taxonomía. Elige cero si no se ejerció la capacidad; deja sin valorar si aún no la revisas. Usaremos lo que ya escribiste.</p>";
   tags.ratings ||= {};
   const api = StoryQCognitiveLabel;
   function selectField(title, options, value, change) {
@@ -958,7 +958,7 @@ function renderCognitiveForm() {
     field.title=api.criteria[i];choices.append(field);
   });
   rubric.append(choices);
-  rubric.append(selectField("Mi relación con la IA",api.relations,tags.relation,v=>tags.relation=v));
+  rubric.append(selectField("Relación con la IA del momento (opcional)",api.relations,tags.relation,v=>tags.relation=v));
   cognitiveForm.append(rubric);
 }
 

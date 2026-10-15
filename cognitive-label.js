@@ -9,7 +9,7 @@
     'Identifiqué un problema, comparé alternativas y comprobé la solución elegida.',
     'Anticipé consecuencias y adapté mi propuesta ante un cambio de condiciones.'
   ];
-  const levels = ['', '1', '2', '3', '4', '5'];
+  const levels = ['', '0', '1', '2', '3', '4', '5'];
   const taxonomy = [
     {name:'Descarga cognitiva',description:'Se delega el pensamiento. Uso acrítico y automático.',relationship:'Dependencia pasiva',risk:'Pérdida de autoría y comprensión.'},
     {name:'Apoyo cognitivo',description:'La IA asiste y amplía capacidades. Uso funcional y estratégico.',relationship:'Dependencia activa',risk:'Dependencia instrumental.'},
@@ -18,10 +18,15 @@
     {name:'Soberanía cognitiva',description:'Se decide con criterio y responsabilidad. Uso ético, autoral y estratégico.',relationship:'Relación autónoma',risk:'Sobreconfianza.'}
   ];
   const relations = ['', ...taxonomy.map(row=>row.name)];
-  function normalizeLevel(value) { const m=String(value||'').match(/^([1-5])(?:$| ·)/);return m?m[1]:''; }
-  function levelCaption(value) { const n=normalizeLevel(value);return n?'★'.repeat(Number(n))+'☆'.repeat(5-Number(n)): '—'; }
-  function guideMarkup(perspective = "student") {
-    return '<details class="star-guide"><summary>Etiqueta y taxonomía STORYQIA</summary><p>'+(perspective==='design'?'Docente: las estrellas expresan cuánto busca activar el diseño cada capacidad. Estudiante: las estrellas expresan cuánto reconoces haberla ejercido.':'Estudiante: las estrellas expresan cuánto reconoces haber ejercido cada capacidad. Docente: las estrellas expresan cuánto busca activarla el diseño.')+' Valora de 1 a 5; más estrellas indican mayor activación prevista o mayor ejercicio reconocido. No indican adquisición permanente ni porcentaje de aprendizaje. La relación con la IA se elige por separado usando esta taxonomía.</p>'+taxonomy.map((row,i)=>'<p><b>'+ (i+1)+' · '+row.name+'</b><br>'+row.description+'<br>'+row.relationship+'<br>Riesgo: '+row.risk+'</p>').join('')+'</details>';
+  function normalizeLevel(value) { const m=String(value ?? '').match(/^([0-5])(?:$| ·)/);return m?m[1]:''; }
+  function levelCaption(value) {
+    const n=normalizeLevel(value);
+    if(n==='') return 'Sin valorar';
+    if(n==='0') return '0 · No se ejerció esta capacidad';
+    return '★'.repeat(Number(n))+' · '+taxonomy[Number(n)-1].name;
+  }
+  function guideMarkup(perspective = 'student') {
+    return '<details class="star-guide"><summary>Qué significa cada estrella</summary><p>'+(perspective==='design'?'Valora la relación cognitiva que buscas promover con cada capacidad.':'Valora la relación cognitiva que reconoces en el ejercicio de cada capacidad.')+' Las estrellas corresponden a los cinco niveles de la taxonomía; no miden intensidad ni adquisición permanente. Si recuperas una valoración anterior, revisa sus estrellas con esta equivalencia; tus registros se conservan.</p><p><b>Sin valorar:</b> aún no se ha realizado la valoración; no entra al promedio.<br><b>0 · No se ejerció esta capacidad:</b> sí entra al promedio. Una estrella significa que se delegó a la IA el pensamiento correspondiente.</p>'+taxonomy.map((row,i)=>'<p><b>'+ '★'.repeat(i+1)+' · '+row.name+'</b><br>'+row.description+'<br>'+row.relationship+'<br>Riesgo: '+row.risk+'</p>').join('')+'</details>';
   }
   function ratings(tag) {
     return values.map((key, i) => {
@@ -33,10 +38,11 @@
     });
   }
   function stars(r) {
-    const match = r.level.match(/^([1-5])$/);
+    const match = r.level.match(/^([0-5])$/);
     if (!r.supported || !match) return '';
     const n=Number(match[1]);
-    return `<span class="rating-stars" aria-label="Nivel ${n} de 5">${'★'.repeat(n)}${'☆'.repeat(5-n)}</span>`;
+    if(n===0) return '<span class="rating-stars">0 · No se ejerció</span>';
+    return `<span class="rating-stars" title="${escape(taxonomy[n-1].name)}" aria-label="${escape(taxonomy[n-1].name)}">${'★'.repeat(n)}${'☆'.repeat(5-n)}</span>`;
   }
   function ratingMarkup(tag) {
     return ratings(tag).map(r => `<li><span title="${escape(r.criterion)}">${r.name}</span><strong>${r.supported?stars(r):'—'}</strong></li>`).join('');
@@ -81,7 +87,7 @@
     return steps.filter(step=>state._designCognitiveTags?.[step.id] && state._cognitiveTags?.[step.id]).map(step=>{
       const design=state._designCognitiveTags[step.id],student=state._cognitiveTags[step.id];
       if(!index(design).count || !index(student).count)return '';
-      return `<section class="label-comparison"><h3>Diseño y experiencia · ${escape(step.title)}</h3><table><thead><tr><th>Valor cognitivo</th><th>Diseño · previsto</th><th>Experiencia · realizada</th></tr></thead><tbody>${values.map((key,i)=>`<tr><th>${names[i]}</th><td>${levelCaption(design.ratings?.[key]?.level)}</td><td>${levelCaption(student.ratings?.[key]?.level)}</td></tr>`).join('')}<tr><th>Índice declarado</th><td>${index(design).percent}%</td><td>${index(student).percent}%</td></tr></tbody></table><p>Compara lo que se buscaba activar con lo que se reconoce haber ejercido. Los índices no miden aprendizaje ni adquisición de competencias.</p></section>`;
+      return `<section class="label-comparison"><h3>Diseño y experiencia · ${escape(step.title)}</h3><table><thead><tr><th>Valor cognitivo</th><th>Diseño · previsto</th><th>Experiencia · realizada</th></tr></thead><tbody>${values.map((key,i)=>`<tr><th>${names[i]}</th><td>${levelCaption(design.ratings?.[key]?.level)}</td><td>${levelCaption(student.ratings?.[key]?.level)}</td></tr>`).join('')}<tr><th>Índice declarado</th><td>${index(design).percent}%</td><td>${index(student).percent}%</td></tr></tbody></table><p>Compara las relaciones cognitivas previstas con las reconocidas en la experiencia. Los índices no miden aprendizaje ni adquisición de competencias.</p></section>`;
     }).join('');
   }
   function render(state, steps) {
@@ -94,15 +100,15 @@
       <div class="label-content"><header><span class="label-kicker">Etiqueta de valor cognitivo</span><h3>STORYQ</h3><p>${tag.perspective==='design'?'Diseño de la actividad':'Experiencia realizada'} — ${escape(tag.moment)}</p></header>
       <dl class="label-identity">${detail('Actividad', tag.activity)}${detail('Participante',tag.participant)}${detail('Fecha de la actividad',tag.date)}${detail('Función de la IA',tag.aiFunction)}</dl>
       <section class="label-box"><h4>Intervención declarada</h4><dl class="label-interventions">${detail('Inteligencia artificial',tag.aiIntervention)}${detail('Intervención humana',tag.humanIntervention)}</dl><p class="label-note">Las intervenciones son independientes; no representan porcentajes de autoría.</p></section>
-      <section class="label-box"><h4>Valor cognitivo</h4><p class="label-note">${tag.perspective==='design'?'Capacidades que el diseño busca activar.':'Capacidades que reconozco haber ejercido.'}</p><ul class="label-values">${ratingMarkup(tag)}</ul><p class="label-note">Estrellas: activación prevista o ejercicio reconocido, de 1 a 5. No son una medición de adquisición permanente.</p></section>
-      <section class="label-box label-index"><h4>Índice de valor cognitivo</h4><strong>${index(tag).percent===null?'—':index(tag).percent+'%'}</strong><p class="label-note">Promedio de estrellas ÷ 5 × 100. ${index(tag).count} de ${values.length} capacidades valoradas. Índice declarado; no mide aprendizaje ni adquisición.</p></section>
+      <section class="label-box"><h4>Valor cognitivo</h4><p class="label-note">${tag.perspective==='design'?'Relación cognitiva prevista para cada capacidad.':'Relación cognitiva reconocida en cada capacidad.'}</p><ul class="label-values">${ratingMarkup(tag)}</ul><p class="label-note">1 Descarga cognitiva · 2 Apoyo cognitivo · 3 Contraste crítico · 4 Apropiación intelectual · 5 Soberanía cognitiva. 0: no se ejerció. Vacío: sin valorar.</p></section>
+      <section class="label-box label-index"><h4>Índice de valor cognitivo</h4><strong>${index(tag).percent===null?'—':index(tag).percent+'%'}</strong><p class="label-note">Promedio de valoraciones (incluido el cero) ÷ 5 × 100. ${index(tag).count} de ${values.length} capacidades valoradas. Índice declarado; no mide aprendizaje ni adquisición.</p></section>
       <section class="label-box"><h4>Relación con la IA</h4><strong>${escape(relationReading(tag).name)}</strong></section>
       <section class="label-box"><h4>Decisión clave y justificación</h4><strong>${escape(tag.decisionMoment || 'Sin decisión registrada')}</strong><p>${escape(tag.decisionWhy || 'Justificación pendiente')}</p></section>
 </div></article>`).join('') + (compare(state,steps) ? '<details class="optional-comparison"><summary>Comparar diseño y experiencia</summary>'+compare(state,steps)+'</details>' : '');
   }
   function describe(tag) {
     const fields=[['Función de IA',tag.aiFunction],['Intervención IA',tag.aiIntervention],['Intervención humana',tag.humanIntervention],['Decisión',tag.decisionMoment],['Justificación',tag.decisionWhy],['Relación con IA',tag.relation],['Evidencia de relación',tag.relationEvidence]];
-    return fields.map(([name,value])=>name+': '+(value || 'Sin registro')).join('\n')+'\n'+ratings(tag).map(r=>r.name+': '+(r.supported?r.level:'Pendiente de valoración o evidencia')+'\nCriterio: '+r.criterion+'\nEvidencia: '+(r.evidence || 'Sin registro')).join('\n');
+    return fields.map(([name,value])=>name+': '+(value || 'Sin registro')).join('\n')+'\n'+ratings(tag).map(r=>r.name+': '+(r.supported?r.level:'Sin valorar')+'\nCriterio: '+r.criterion+'\nEvidencia: '+(r.evidence || 'Sin registro')).join('\n');
   }
   const api = {build, render, ratings, values, names, criteria, levels, relations, relationReading, index, compare, authorship, strategy, describe, taxonomy, normalizeLevel, levelCaption, guideMarkup};
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

@@ -17,3 +17,15 @@ assert.equal(api.index({}).percent,null);
 assert.equal(api.build({_cognitiveTags:{}},steps).length,0);
 assert(api.render({...state,activityName:'<script>alert(1)</script>'},steps).includes('&lt;script&gt;'));
 console.log('PASS: levels require evidence, justified relation, stars, pending understanding, safe rendering');
+
+assert.equal(api.normalizeLevel(0),'0');
+assert.equal(api.normalizeLevel('0'),'0');
+assert.equal(api.normalizeLevel(''),'');
+assert.equal(api.levelCaption('3'),'★★★ · Contraste crítico');
+const zero={ratings:{[key]:{level:'0'}}};
+assert.deepEqual(api.index(zero),{percent:0,count:1});
+assert.equal(api.ratings(zero)[0].supported,true);
+assert.equal(api.build({_cognitiveTags:{test:zero}},steps).length,1);
+assert(api.render({_cognitiveTags:{test:zero}},steps).includes('0 · No se ejerció'));
+assert.equal(api.index({ratings:{[key]:{level:'0'},[api.values[1]]:{level:'4'},[api.values[2]]:{level:''}}}).percent,40);
+console.log('PASS: taxonomy stars, numeric/string zero, empty exclusion and zero-only labels');

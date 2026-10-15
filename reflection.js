@@ -22,7 +22,7 @@ const reflectionSteps = [
       ['reviewerName', 'Quién revisó · opcional', 'input', 'Nombre o referencia de quien realizó la revisión.'],
       ['reviewCriterion', 'Criterio de comprensión observado', 'textarea', '¿Qué explicación, aplicación o adaptación se espera en esta actividad?'],
       ['reviewQuestion', 'Una pregunta de seguimiento', 'textarea', 'A partir del pitch: ¿cómo cambiaría tu respuesta si cambiara una condición concreta?'],
-      ['reviewResponse', 'Respuesta o descripción de la demostración', 'textarea', 'Sin consultar la respuesta de IA, explica, aplica o modifica. Conserva las ayudas de accesibilidad. Registra lo observado o una referencia a la evidencia.'],
+      ['reviewResponse', 'Respuesta o descripción de la demostración', 'textarea', 'Sin consultar la respuesta de IA, explica, aplica o modifica. Demostrar el pensamiento propio no exige renunciar a los apoyos de accesibilidad, como lectura en voz alta o dictado. Registra lo observado o una referencia a la evidencia.'],
       ['reflectionStatus', 'Reflexión sobre el aprendizaje', 'select', 'No evaluado|Evidencia por ampliar|Evidencia registrada|No aplica'],
       ['understandingStatus', 'Comprensión en esta tarea', 'select', 'No evaluado|Evidencia por ampliar|Demostrada para el criterio|No aplica'],
       ['reviewEvidence', 'Evidencia que sostiene la valoración', 'textarea', 'Describe qué respuesta o acción respalda cada valoración. Reconocer una duda no equivale a fallar. No evalúes intimidad, entusiasmo ni seguridad al hablar.'],
